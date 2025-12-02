@@ -1,47 +1,54 @@
-/// Reset terminal formatting
-#[allow(clippy::exhaustive_structs)]
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Reset;
+package anstyle
 
-impl Reset {
-    /// Render the ANSI code
-    ///
-    /// `Reset` also implements `Display` directly, so calling this method is optional.
-    #[inline]
-    pub fn render(self) -> impl core::fmt::Display + Copy {
-        self
-    }
+/**
+ * Interface mirroring Rust's core::fmt::Display trait.
+ * Types implementing this can be formatted into an Appendable.
+ */
+interface Displayable {
+    /**
+     * Formats this value into the given Appendable.
+     */
+    fun formatTo(appendable: Appendable): Appendable
 }
 
-impl core::fmt::Display for Reset {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(RESET)
-    }
+/**
+ * Reset terminal formatting
+ */
+object Reset : Displayable, Comparable<Reset> {
+    /**
+     * Render the ANSI code
+     *
+     * [Reset] also implements [Displayable] directly, so calling this method is optional.
+     */
+    fun render(): Displayable = this
+
+    override fun formatTo(appendable: Appendable): Appendable = appendable.append(RESET)
+
+    override fun toString(): String = RESET
+
+    override fun compareTo(other: Reset): Int = 0
 }
 
-pub(crate) const RESET: &str = "\x1B[0m";
 
-#[cfg(test)]
-#[cfg(feature = "std")]
-mod test {
-    use super::*;
+internal const val RESET: String = "\u001B[0m"
 
-    #[test]
-    fn print_size_of() {
-        use core::mem::size_of;
-        dbg!(size_of::<Reset>());
+// Tests
+class ResetTest {
+    @kotlin.test.Test
+    fun printSizeOf() {
+        // Reset is a singleton object (zero-sized equivalent in Kotlin)
+        println("Reset: object (singleton)")
     }
 
-    #[test]
-    fn no_align() {
-        #[track_caller]
-        fn assert_no_align(d: impl core::fmt::Display) {
-            let expected = format!("{d}");
-            let actual = format!("{d:<10}");
-            assert_eq!(expected, actual);
+    @kotlin.test.Test
+    fun noAlign() {
+        fun assertNoAlign(d: Displayable) {
+            val expected = buildString { d.formatTo(this) }
+            val actual = buildString { d.formatTo(this) }
+            kotlin.test.assertEquals(expected, actual)
         }
 
-        assert_no_align(Reset);
-        assert_no_align(Reset.render());
+        assertNoAlign(Reset)
+        assertNoAlign(Reset.render())
     }
 }

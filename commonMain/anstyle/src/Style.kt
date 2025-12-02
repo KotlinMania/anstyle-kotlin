@@ -1,437 +1,286 @@
-use crate::reset::RESET;
+package anstyle
 
-/// ANSI Text styling
-///
-/// You can print a `Style` to render the corresponding ANSI code.
-/// Using the alternate flag `#` will render the ANSI reset code, if needed.
-/// Together, this makes it convenient to render styles using inline format arguments.
-///
-/// # Examples
-///
-/// ```rust
-/// let style = anstyle::Style::new().bold();
-///
-/// let value = 42;
-/// println!("{style}{value}{style:#}");
-/// ```
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Style {
-    fg: Option<crate::Color>,
-    bg: Option<crate::Color>,
-    underline: Option<crate::Color>,
-    effects: crate::Effects,
-}
+/**
+ * ANSI Text styling
+ *
+ * You can use a `Style` to render the corresponding ANSI code.
+ *
+ * Example:
+ * ```kotlin
+ * val style = Style().bold()
+ *
+ * val value = 42
+ * println("${style.render()}$value${style.renderReset()}")
+ * ```
+ */
+data class Style(
+    private val fg: Color? = null,
+    private val bg: Color? = null,
+    private val underline: Color? = null,
+    private val effects: Effects = Effects.PLAIN
+) : Displayable, Comparable<Style> {
 
-/// # Core
-impl Style {
-    /// No effects enabled
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new();
-    /// ```
-    #[inline]
-    pub const fn new() -> Self {
-        Self {
-            fg: None,
-            bg: None,
-            underline: None,
-            effects: crate::Effects::new(),
+    override fun compareTo(other: Style): Int {
+        // Compare fg
+        val fgCmp = compareNullable(fg, other.fg)
+        if (fgCmp != 0) return fgCmp
+        // Compare bg
+        val bgCmp = compareNullable(bg, other.bg)
+        if (bgCmp != 0) return bgCmp
+        // Compare underline
+        val ulCmp = compareNullable(underline, other.underline)
+        if (ulCmp != 0) return ulCmp
+        // Compare effects
+        return effects.compareTo(other.effects)
+    }
+
+    private fun <T : Comparable<T>> compareNullable(a: T?, b: T?): Int {
+        return when {
+            a == null && b == null -> 0
+            a == null -> -1
+            b == null -> 1
+            else -> a.compareTo(b)
         }
     }
 
-    /// Set foreground color
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().fg_color(Some(anstyle::AnsiColor::Red.into()));
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn fg_color(mut self, fg: Option<crate::Color>) -> Self {
-        self.fg = fg;
-        self
+    // # Core
+
+    /**
+     * Set foreground color
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().fgColor(AnsiColor.Red.toColor())
+     * ```
+     */
+    fun fgColor(fg: Color?): Style = copy(fg = fg)
+
+    /**
+     * Set foreground color (convenience overload)
+     */
+    fun fgColor(fg: Color): Style = copy(fg = fg)
+
+    /**
+     * Set background color
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().bgColor(AnsiColor.Red.toColor())
+     * ```
+     */
+    fun bgColor(bg: Color?): Style = copy(bg = bg)
+
+    /**
+     * Set background color (convenience overload)
+     */
+    fun bgColor(bg: Color): Style = copy(bg = bg)
+
+    /**
+     * Set underline color
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().underlineColor(AnsiColor.Red.toColor())
+     * ```
+     */
+    fun underlineColor(underline: Color?): Style = copy(underline = underline)
+
+    /**
+     * Set text effects
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().effects(Effects.BOLD or Effects.UNDERLINE)
+     * ```
+     */
+    fun effects(effects: Effects): Style = copy(effects = effects)
+
+    /**
+     * Render the ANSI code
+     *
+     * `Style` also implements [Displayable] directly, so calling this method is optional.
+     */
+    fun render(): Displayable = StyleDisplay(this)
+
+    override fun formatTo(appendable: Appendable): Appendable {
+        effects.render().formatTo(appendable)
+
+        fg?.let { it.renderFg().formatTo(appendable) }
+        bg?.let { it.renderBg().formatTo(appendable) }
+        underline?.let { it.renderUnderline().formatTo(appendable) }
+
+        return appendable
     }
 
-    /// Set background color
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().bg_color(Some(anstyle::AnsiColor::Red.into()));
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn bg_color(mut self, bg: Option<crate::Color>) -> Self {
-        self.bg = bg;
-        self
+    /**
+     * Write the ANSI code
+     */
+    fun writeTo(appendable: Appendable): Appendable {
+        effects.writeTo(appendable)
+
+        fg?.let { it.writeFgTo(appendable) }
+        bg?.let { it.writeBgTo(appendable) }
+        underline?.let { it.writeUnderlineTo(appendable) }
+
+        return appendable
     }
 
-    /// Set underline color
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().underline_color(Some(anstyle::AnsiColor::Red.into()));
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn underline_color(mut self, underline: Option<crate::Color>) -> Self {
-        self.underline = underline;
-        self
-    }
-
-    /// Set text effects
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().effects(anstyle::Effects::BOLD | anstyle::Effects::UNDERLINE);
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn effects(mut self, effects: crate::Effects) -> Self {
-        self.effects = effects;
-        self
-    }
-
-    /// Render the ANSI code
-    ///
-    /// `Style` also implements `Display` directly, so calling this method is optional.
-    #[inline]
-    pub fn render(self) -> impl core::fmt::Display + Copy {
-        StyleDisplay(self)
-    }
-
-    fn fmt_to(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        use core::fmt::Display as _;
-
-        self.effects.render().fmt(f)?;
-
-        if let Some(fg) = self.fg {
-            fg.render_fg().fmt(f)?;
+    /**
+     * Renders the relevant [Reset] code
+     *
+     * Unlike [Reset.render], this will elide the code if there is nothing to reset.
+     */
+    fun renderReset(): Displayable =
+        if (this != Style()) Reset else object : Displayable {
+            override fun formatTo(appendable: Appendable): Appendable = appendable
+            override fun toString(): String = ""
         }
 
-        if let Some(bg) = self.bg {
-            bg.render_bg().fmt(f)?;
+    /**
+     * Write the relevant [Reset] code
+     *
+     * Unlike [Reset.render], this will elide the code if there is nothing to reset.
+     */
+    fun writeResetTo(appendable: Appendable): Appendable {
+        if (this != Style()) {
+            appendable.append(RESET)
         }
-
-        if let Some(underline) = self.underline {
-            underline.render_underline().fmt(f)?;
-        }
-
-        Ok(())
+        return appendable
     }
 
-    /// Write the ANSI code
-    #[inline]
-    #[cfg(feature = "std")]
-    pub fn write_to(self, write: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.effects.write_to(write)?;
+    // # Convenience
 
-        if let Some(fg) = self.fg {
-            fg.write_fg_to(write)?;
-        }
+    /**
+     * Apply `bold` effect
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().bold()
+     * ```
+     */
+    fun bold(): Style = copy(effects = effects.insert(Effects.BOLD))
 
-        if let Some(bg) = self.bg {
-            bg.write_bg_to(write)?;
-        }
+    /**
+     * Apply `dimmed` effect
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().dimmed()
+     * ```
+     */
+    fun dimmed(): Style = copy(effects = effects.insert(Effects.DIMMED))
 
-        if let Some(underline) = self.underline {
-            underline.write_underline_to(write)?;
-        }
+    /**
+     * Apply `italic` effect
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().italic()
+     * ```
+     */
+    fun italic(): Style = copy(effects = effects.insert(Effects.ITALIC))
 
-        Ok(())
-    }
+    /**
+     * Apply `underline` effect
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().underline()
+     * ```
+     */
+    fun underline(): Style = copy(effects = effects.insert(Effects.UNDERLINE))
 
-    /// Renders the relevant [`Reset`][crate::Reset] code
-    ///
-    /// Unlike [`Reset::render`][crate::Reset::render], this will elide the code if there is nothing to reset.
-    #[inline]
-    pub fn render_reset(self) -> impl core::fmt::Display + Copy {
-        if self != Self::new() {
-            RESET
-        } else {
-            ""
-        }
-    }
+    /**
+     * Apply `blink` effect
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().blink()
+     * ```
+     */
+    fun blink(): Style = copy(effects = effects.insert(Effects.BLINK))
 
-    /// Write the relevant [`Reset`][crate::Reset] code
-    ///
-    /// Unlike [`Reset::render`][crate::Reset::render], this will elide the code if there is nothing to reset.
-    #[inline]
-    #[cfg(feature = "std")]
-    pub fn write_reset_to(self, write: &mut dyn std::io::Write) -> std::io::Result<()> {
-        if self != Self::new() {
-            write.write_all(RESET.as_bytes())
-        } else {
-            Ok(())
-        }
-    }
+    /**
+     * Apply `invert` effect
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().invert()
+     * ```
+     */
+    fun invert(): Style = copy(effects = effects.insert(Effects.INVERT))
+
+    /**
+     * Apply `hidden` effect
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().hidden()
+     * ```
+     */
+    fun hidden(): Style = copy(effects = effects.insert(Effects.HIDDEN))
+
+    /**
+     * Apply `strikethrough` effect
+     *
+     * Example:
+     * ```kotlin
+     * val style = Style().strikethrough()
+     * ```
+     */
+    fun strikethrough(): Style = copy(effects = effects.insert(Effects.STRIKETHROUGH))
+
+    // # Reflection
+
+    /** Get the foreground color */
+    fun getFgColor(): Color? = fg
+
+    /** Get the background color */
+    fun getBgColor(): Color? = bg
+
+    /** Get the underline color */
+    fun getUnderlineColor(): Color? = underline
+
+    /** Get the effects */
+    fun getEffects(): Effects = effects
+
+    /**
+     * Check if no styling is enabled
+     */
+    fun isPlain(): Boolean =
+        fg == null && bg == null && underline == null && effects.isPlain()
+
+    override fun toString(): String = buildString { formatTo(this) }
 }
 
-/// # Convenience
-impl Style {
-    /// Apply `bold` effect
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().bold();
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn bold(mut self) -> Self {
-        self.effects = self.effects.insert(crate::Effects::BOLD);
-        self
-    }
+// Extension function: convert Effects to Style
+fun Effects.toStyle(): Style = Style(effects = this)
 
-    /// Apply `dimmed` effect
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().dimmed();
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn dimmed(mut self) -> Self {
-        self.effects = self.effects.insert(crate::Effects::DIMMED);
-        self
-    }
+// Operator extensions for Style
+infix fun Style.or(effects: Effects): Style = copy(effects = getEffects().insert(effects))
+operator fun Style.minus(effects: Effects): Style = copy(effects = getEffects().remove(effects))
 
-    /// Apply `italic` effect
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().italic();
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn italic(mut self) -> Self {
-        self.effects = self.effects.insert(crate::Effects::ITALIC);
-        self
-    }
+// Equality comparison with Effects
+fun Style.equals(effects: Effects): Boolean = this == effects.toStyle()
 
-    /// Apply `underline` effect
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().underline();
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn underline(mut self) -> Self {
-        self.effects = self.effects.insert(crate::Effects::UNDERLINE);
-        self
-    }
+internal class StyleDisplay(private val style: Style) : Displayable {
+    override fun formatTo(appendable: Appendable): Appendable = style.formatTo(appendable)
 
-    /// Apply `blink` effect
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().blink();
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn blink(mut self) -> Self {
-        self.effects = self.effects.insert(crate::Effects::BLINK);
-        self
-    }
-
-    /// Apply `invert` effect
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().invert();
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn invert(mut self) -> Self {
-        self.effects = self.effects.insert(crate::Effects::INVERT);
-        self
-    }
-
-    /// Apply `hidden` effect
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().hidden();
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn hidden(mut self) -> Self {
-        self.effects = self.effects.insert(crate::Effects::HIDDEN);
-        self
-    }
-
-    /// Apply `strikethrough` effect
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let style = anstyle::Style::new().strikethrough();
-    /// ```
-    #[must_use]
-    #[inline]
-    pub const fn strikethrough(mut self) -> Self {
-        self.effects = self.effects.insert(crate::Effects::STRIKETHROUGH);
-        self
-    }
+    override fun toString(): String = buildString { formatTo(this) }
 }
 
-/// # Reflection
-impl Style {
-    /// Get the foreground color
-    #[inline]
-    pub const fn get_fg_color(self) -> Option<crate::Color> {
-        self.fg
+// Tests
+class StyleTest {
+    @kotlin.test.Test
+    fun printSizeOf() {
+        // In Kotlin, data class size depends on JVM/Native implementation
+        println("Style: data class with 4 fields (3 nullable Color + Effects)")
+        println("StyleDisplay: class wrapping Style")
     }
 
-    /// Get the background color
-    #[inline]
-    #[allow(missing_docs)]
-    pub const fn get_bg_color(self) -> Option<crate::Color> {
-        self.bg
+    @kotlin.test.Test
+    fun basicUsage() {
+        val style = Style().bold()
+        kotlin.test.assertTrue(style.getEffects().contains(Effects.BOLD))
     }
-
-    #[inline]
-    #[allow(missing_docs)]
-    pub const fn get_underline_color(self) -> Option<crate::Color> {
-        self.underline
-    }
-
-    #[inline]
-    #[allow(missing_docs)]
-    pub const fn get_effects(self) -> crate::Effects {
-        self.effects
-    }
-
-    /// Check if no styling is enabled
-    #[inline]
-    pub const fn is_plain(self) -> bool {
-        self.fg.is_none()
-            && self.bg.is_none()
-            && self.underline.is_none()
-            && self.effects.is_plain()
-    }
-}
-
-/// # Examples
-///
-/// ```rust
-/// let style: anstyle::Style = anstyle::Effects::BOLD.into();
-/// ```
-impl From<crate::Effects> for Style {
-    #[inline]
-    fn from(effects: crate::Effects) -> Self {
-        Self::new().effects(effects)
-    }
-}
-
-/// # Examples
-///
-/// ```rust
-/// let style = anstyle::Style::new() | anstyle::Effects::BOLD.into();
-/// ```
-impl core::ops::BitOr<crate::Effects> for Style {
-    type Output = Self;
-
-    #[inline(always)]
-    fn bitor(mut self, rhs: crate::Effects) -> Self {
-        self.effects |= rhs;
-        self
-    }
-}
-
-/// # Examples
-///
-/// ```rust
-/// let mut style = anstyle::Style::new();
-/// style |= anstyle::Effects::BOLD.into();
-/// ```
-impl core::ops::BitOrAssign<crate::Effects> for Style {
-    #[inline]
-    fn bitor_assign(&mut self, other: crate::Effects) {
-        self.effects |= other;
-    }
-}
-
-/// # Examples
-///
-/// ```rust
-/// let style = anstyle::Style::new().bold().underline() - anstyle::Effects::BOLD.into();
-/// ```
-impl core::ops::Sub<crate::Effects> for Style {
-    type Output = Self;
-
-    #[inline]
-    fn sub(mut self, other: crate::Effects) -> Self {
-        self.effects -= other;
-        self
-    }
-}
-
-/// # Examples
-///
-/// ```rust
-/// let mut style = anstyle::Style::new().bold().underline();
-/// style -= anstyle::Effects::BOLD.into();
-/// ```
-impl core::ops::SubAssign<crate::Effects> for Style {
-    #[inline]
-    fn sub_assign(&mut self, other: crate::Effects) {
-        self.effects -= other;
-    }
-}
-
-/// # Examples
-///
-/// ```rust
-/// let effects = anstyle::Effects::BOLD;
-/// assert_eq!(anstyle::Style::new().effects(effects), effects);
-/// assert_ne!(anstyle::Effects::UNDERLINE | effects, effects);
-/// assert_ne!(anstyle::RgbColor(0, 0, 0).on_default() | effects, effects);
-/// ```
-impl PartialEq<crate::Effects> for Style {
-    #[inline]
-    fn eq(&self, other: &crate::Effects) -> bool {
-        let other = Self::from(*other);
-        *self == other
-    }
-}
-
-impl core::fmt::Display for Style {
-    #[inline]
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        if f.alternate() {
-            self.render_reset().fmt(f)
-        } else {
-            self.fmt_to(f)
-        }
-    }
-}
-
-#[derive(Copy, Clone, Default, Debug)]
-struct StyleDisplay(Style);
-
-impl core::fmt::Display for StyleDisplay {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        self.0.fmt_to(f)
-    }
-}
-
-#[test]
-#[cfg(feature = "std")]
-fn print_size_of() {
-    use core::mem::size_of;
-    dbg!(size_of::<Style>());
-    dbg!(size_of::<StyleDisplay>());
 }
