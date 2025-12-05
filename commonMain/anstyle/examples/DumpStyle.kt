@@ -146,8 +146,12 @@ fun parseArgs(args: Array<String>): DumpStyleArgs {
     return DumpStyleArgs(effects, layer)
 }
 
-// Note: In Kotlin/Native, main function would be in a separate file
-// fun main(args: Array<String>) {
-//     val parsedArgs = parseArgs(args)
-//     dumpStyle(parsedArgs)
-// }
+/**
+ * Main entry point.
+ *
+ * Usage: dump-style [--layer fg|bg|underline] [--effect bold|italic|...]
+ */
+fun main(args: Array<String>) {
+    val parsedArgs = parseArgs(args)
+    dumpStyle(parsedArgs)
+}

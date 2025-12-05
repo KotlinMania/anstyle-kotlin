@@ -12,6 +12,8 @@ import anstyle.parse.state.State
 import anstyle.parse.state.Action
 import anstyle.parse.state.stateChange
 import kotlin.time.measureTime
+import okio.FileSystem
+import okio.Path.Companion.toPath
 
 // Rust original:
 // use std::hint::black_box;
@@ -120,6 +122,20 @@ fun stripStr(content: String): String {
 }
 
 /**
+ * Read a file into a ByteArray using Okio
+ */
+fun readFileBytes(path: String): ByteArray? {
+    val filePath = path.toPath()
+    return try {
+        FileSystem.SYSTEM.read(filePath) {
+            readByteArray()
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
+/**
  * Benchmark data samples
  */
 data class BenchData(val name: String, val content: ByteArray) {
@@ -130,12 +146,33 @@ data class BenchData(val name: String, val content: ByteArray) {
     }
 
     override fun hashCode(): Int = 31 * name.hashCode() + content.contentHashCode()
+
+    override fun toString(): String = name
 }
 
-val BENCH_DATA = listOf(
-    BenchData("state_changes", "\u001b]2;X\u001b\\ \u001b[0m \u001bP0@\u001b\\".encodeToByteArray())
-    // Note: Additional test data (demo.vte, rg_help.vte, rg_linus.vte) would be loaded from files
-)
+/**
+ * Load benchmark data from test files.
+ * Returns the list of available benchmark data sets.
+ */
+fun loadBenchData(testDir: String = "../tests"): List<BenchData> {
+    val data = mutableListOf<BenchData>()
+
+    // Always include the inline state_changes test
+    data.add(BenchData("0-state_changes", "\u001b]2;X\u001b\\ \u001b[0m \u001bP0@\u001b\\".encodeToByteArray()))
+
+    // Load test files if available
+    readFileBytes("$testDir/demo.vte")?.let {
+        data.add(BenchData("1-demo.vte", it))
+    }
+    readFileBytes("$testDir/rg_help.vte")?.let {
+        data.add(BenchData("2-rg_help.vte", it))
+    }
+    readFileBytes("$testDir/rg_linus.vte")?.let {
+        data.add(BenchData("3-rg_linus.vte", it))
+    }
+
+    return data
+}
 
 /**
  * Run parser advance benchmark
@@ -188,8 +225,8 @@ fun benchStateChange(data: BenchData, iterations: Int = 1000): Long {
 /**
  * Verify that Strip and stripStr produce the same results
  */
-fun verifyData() {
-    for (data in BENCH_DATA) {
+fun verifyData(benchData: List<BenchData>) {
+    for (data in benchData) {
         val content = data.content.decodeToString()
 
         val stripped = Strip(content.length)
@@ -206,14 +243,22 @@ fun verifyData() {
     println("All data verified successfully")
 }
 
-// Example main function for running benchmarks:
-// fun main() {
-//     verifyData()
-//
-//     for (data in BENCH_DATA) {
-//         println("Benchmark: ${data.name}")
-//         println("  advance: ${benchAdvance(data)}ms for 1000 iterations")
-//         println("  advance_strip: ${benchAdvanceStrip(data)}ms for 1000 iterations")
-//         println("  state_change: ${benchStateChange(data)}ms for 1000 iterations")
-//     }
-// }
+/**
+ * Main entry point for running benchmarks.
+ *
+ * Note: This is a simple timing-based benchmark since Kotlin/Native
+ * doesn't have a standard benchmarking framework like Rust's divan.
+ */
+fun main() {
+    val benchData = loadBenchData()
+    println("Loaded ${benchData.size} benchmark datasets")
+
+    verifyData(benchData)
+
+    for (data in benchData) {
+        println("\nBenchmark: ${data.name} (${data.content.size} bytes)")
+        println("  advance:       ${benchAdvance(data)}ms for 1000 iterations")
+        println("  advance_strip: ${benchAdvanceStrip(data)}ms for 1000 iterations")
+        println("  state_change:  ${benchStateChange(data)}ms for 1000 iterations")
+    }
+}

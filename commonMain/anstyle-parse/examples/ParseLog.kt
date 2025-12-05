@@ -73,9 +73,23 @@ fun parseAndLog(input: String) {
     parseAndLog(input.encodeToByteArray())
 }
 
-// Note: In Kotlin/Native, main function with stdin reading would be:
-// fun main() {
-//     // Read from stdin and process
-//     val input = generateSequence(::readLine).joinToString("\n")
-//     parseAndLog(input)
-// }
+/**
+ * Main entry point - reads from stdin and logs all ANSI sequences.
+ *
+ * Usage: pipe ANSI-colored text into this program
+ *   echo -e "\x1b[31mHello\x1b[0m" | parselog
+ */
+fun main() {
+    val statemachine = Parser<AsciiParser>()
+    val performer = Log()
+
+    while (true) {
+        val line = readlnOrNull() ?: break
+        val bytes = line.encodeToByteArray()
+        for (byte in bytes) {
+            statemachine.advance(performer, byte.toUByte())
+        }
+        // Also process the newline that readlnOrNull strips
+        statemachine.advance(performer, '\n'.code.toUByte())
+    }
+}
