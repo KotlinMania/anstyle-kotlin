@@ -1,207 +1,219 @@
-#![allow(clippy::incompatible_msrv)] // not verifying benches atm
+package anstyle.parse.benches
 
-use std::hint::black_box;
+// Benchmark tests for the ANSI parser
+// Note: Kotlin/Native doesn't have a standard benchmarking library like Rust's divan,
+// so these are simple timing tests that can be run manually.
 
-use anstyle_parse::DefaultCharAccumulator;
-use anstyle_parse::Params;
-use anstyle_parse::Parser;
-use anstyle_parse::Perform;
+import anstyle.parse.AsciiParser
+import anstyle.parse.Params
+import anstyle.parse.Parser
+import anstyle.parse.Perform
+import anstyle.parse.state.State
+import anstyle.parse.state.Action
+import anstyle.parse.state.stateChange
+import kotlin.time.measureTime
 
-#[divan::bench(args = DATA)]
-fn advance(data: &Data) {
-    let mut dispatcher = BenchDispatcher;
-    let mut parser = Parser::<DefaultCharAccumulator>::new();
+// Rust original:
+// use std::hint::black_box;
+// use anstyle_parse::{DefaultCharAccumulator, Params, Parser, Perform};
 
-    for byte in data.content() {
-        parser.advance(&mut dispatcher, *byte);
+/**
+ * A dispatcher that does nothing (for benchmarking parser overhead)
+ */
+class BenchDispatcher : Perform {
+    override fun print(c: Char) {
+        // black_box equivalent - just consume the value
+    }
+
+    override fun execute(byte: UByte) {
+        // black_box equivalent
+    }
+
+    override fun hook(params: Params, intermediates: UByteArray, ignore: Boolean, action: UByte) {
+        // black_box equivalent
+    }
+
+    override fun put(byte: UByte) {
+        // black_box equivalent
+    }
+
+    override fun oscDispatch(params: Array<ByteArray>, bellTerminated: Boolean) {
+        // black_box equivalent
+    }
+
+    override fun csiDispatch(params: Params, intermediates: UByteArray, ignore: Boolean, action: UByte) {
+        // black_box equivalent
+    }
+
+    override fun escDispatch(intermediates: UByteArray, ignore: Boolean, byte: UByte) {
+        // black_box equivalent
     }
 }
 
-#[divan::bench(args = DATA)]
-fn advance_strip(data: &Data) -> String {
-    let mut stripped = Strip::with_capacity(data.content().len());
-    let mut parser = Parser::<DefaultCharAccumulator>::new();
+/**
+ * A dispatcher that strips ANSI codes and collects printable text
+ */
+class Strip(capacity: Int = 0) : Perform {
+    val result: StringBuilder = StringBuilder(capacity)
 
-    for byte in data.content() {
-        parser.advance(&mut stripped, *byte);
+    override fun print(c: Char) {
+        result.append(c)
     }
 
-    black_box(stripped.0)
-}
-
-#[divan::bench(args = DATA)]
-fn state_change(data: &Data) {
-    let mut state = anstyle_parse::state::State::default();
-    for byte in data.content() {
-        let (next_state, action) = anstyle_parse::state::state_change(state, *byte);
-        state = next_state;
-        black_box(action);
-    }
-}
-
-#[divan::bench(args = DATA)]
-fn state_change_strip_str(bencher: divan::Bencher<'_, '_>, data: &Data) {
-    if let Ok(content) = std::str::from_utf8(data.content()) {
-        bencher
-            .with_inputs(|| content)
-            .bench_local_values(|content| {
-                let stripped = strip_str(content);
-
-                black_box(stripped)
-            });
-    }
-}
-
-struct BenchDispatcher;
-impl Perform for BenchDispatcher {
-    fn print(&mut self, c: char) {
-        black_box(c);
-    }
-
-    fn execute(&mut self, byte: u8) {
-        black_box(byte);
-    }
-
-    fn hook(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: u8) {
-        black_box((params, intermediates, ignore, c));
-    }
-
-    fn put(&mut self, byte: u8) {
-        black_box(byte);
-    }
-
-    fn osc_dispatch(&mut self, params: &[&[u8]], bell_terminated: bool) {
-        black_box((params, bell_terminated));
-    }
-
-    fn csi_dispatch(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: u8) {
-        black_box((params, intermediates, ignore, c));
-    }
-
-    fn esc_dispatch(&mut self, intermediates: &[u8], ignore: bool, byte: u8) {
-        black_box((intermediates, ignore, byte));
-    }
-}
-
-#[derive(Default)]
-struct Strip(String);
-impl Strip {
-    fn with_capacity(capacity: usize) -> Self {
-        Self(String::with_capacity(capacity))
-    }
-}
-impl Perform for Strip {
-    fn print(&mut self, c: char) {
-        self.0.push(c);
-    }
-
-    fn execute(&mut self, byte: u8) {
-        if byte.is_ascii_whitespace() {
-            self.0.push(byte as char);
+    override fun execute(byte: UByte) {
+        val b = byte.toByte()
+        if (b.toInt().toChar().isWhitespace()) {
+            result.append(b.toInt().toChar())
         }
     }
 }
 
-fn strip_str(content: &str) -> String {
-    use anstyle_parse::state::state_change;
-    use anstyle_parse::state::Action;
-    use anstyle_parse::state::State;
+/**
+ * Strip ANSI codes using direct state machine (optimized version)
+ */
+fun stripStr(content: String): String {
+    fun isUtf8Continuation(b: UByte): Boolean = b.toInt() in 0x80..0xbf
 
-    #[inline]
-    fn is_utf8_continuation(b: u8) -> bool {
-        matches!(b, 0x80..=0xbf)
+    fun isPrintable(action: Action, byte: UByte): Boolean {
+        return action == Action.Print ||
+            action == Action.BeginUtf8 ||
+            // since we know the input is valid UTF-8, the only thing we can do with
+            // continuations is to print them
+            isUtf8Continuation(byte) ||
+            (action == Action.Execute && byte.toByte().toInt().toChar().isWhitespace())
     }
 
-    #[inline]
-    fn is_printable(action: Action, byte: u8) -> bool {
-        action == Action::Print
-                    || action == Action::BeginUtf8
-                    // since we know the input is valid UTF-8, the only thing  we can do with
-                    // continuations is to print them
-                    || is_utf8_continuation(byte)
-                    || (action == Action::Execute && byte.is_ascii_whitespace())
-    }
+    val stripped = mutableListOf<Byte>()
+    val bytes = content.encodeToByteArray()
+    var offset = 0
 
-    let mut stripped = Vec::with_capacity(content.len());
+    while (offset < bytes.size) {
+        // Find first non-printable position
+        var printableEnd = offset
+        while (printableEnd < bytes.size) {
+            val b = bytes[printableEnd].toUByte()
+            val (_, action) = stateChange(State.Ground, b)
+            if (!isPrintable(action, b)) break
+            printableEnd++
+        }
 
-    let mut bytes = content.as_bytes();
-    while !bytes.is_empty() {
-        let offset = bytes.iter().copied().position(|b| {
-            let (_next_state, action) = state_change(State::Ground, b);
-            !is_printable(action, b)
-        });
-        let (printable, next) = bytes.split_at(offset.unwrap_or(bytes.len()));
-        stripped.extend(printable);
-        bytes = next;
+        // Copy printable portion
+        for (i in offset until printableEnd) {
+            stripped.add(bytes[i])
+        }
+        offset = printableEnd
 
-        let mut state = State::Ground;
-        let offset = bytes.iter().copied().position(|b| {
-            let (next_state, action) = state_change(state, b);
-            if next_state != State::Anywhere {
-                state = next_state;
+        // Skip non-printable portion
+        var state = State.Ground
+        while (offset < bytes.size) {
+            val b = bytes[offset].toUByte()
+            val (nextState, action) = stateChange(state, b)
+            if (nextState != State.Anywhere) {
+                state = nextState
             }
-            is_printable(action, b)
-        });
-        let (_, next) = bytes.split_at(offset.unwrap_or(bytes.len()));
-        bytes = next;
-    }
-
-    #[allow(clippy::unwrap_used)]
-    String::from_utf8(stripped).unwrap()
-}
-
-const DATA: &[Data] = &[
-    Data(
-        "0-state_changes",
-        b"\x1b]2;X\x1b\\ \x1b[0m \x1bP0@\x1b\\".as_slice(),
-    ),
-    #[cfg(feature = "utf8")]
-    Data("1-demo.vte", include_bytes!("../tests/demo.vte").as_slice()),
-    Data(
-        "2-rg_help.vte",
-        include_bytes!("../tests/rg_help.vte").as_slice(),
-    ),
-    Data(
-        "3-rg_linus.vte",
-        include_bytes!("../tests/rg_linus.vte").as_slice(),
-    ),
-];
-
-#[derive(Debug)]
-struct Data(&'static str, &'static [u8]);
-
-impl Data {
-    const fn name(&self) -> &'static str {
-        self.0
-    }
-
-    const fn content(&self) -> &'static [u8] {
-        self.1
-    }
-}
-
-impl std::fmt::Display for Data {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.name().fmt(f)
-    }
-}
-
-#[test]
-fn verify_data() {
-    for data in DATA {
-        let Data(name, content) = data;
-        // Make sure the comparison is fair
-        if let Ok(content) = std::str::from_utf8(content) {
-            let mut stripped = Strip::with_capacity(content.len());
-            let mut parser = Parser::<DefaultCharAccumulator>::new();
-            for byte in content.as_bytes() {
-                parser.advance(&mut stripped, *byte);
-            }
-            assert_eq!(stripped.0, strip_str(content));
+            if (isPrintable(action, b)) break
+            offset++
         }
     }
+
+    return stripped.toByteArray().decodeToString()
 }
 
-fn main() {
-    divan::main();
+/**
+ * Benchmark data samples
+ */
+data class BenchData(val name: String, val content: ByteArray) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is BenchData) return false
+        return name == other.name && content.contentEquals(other.content)
+    }
+
+    override fun hashCode(): Int = 31 * name.hashCode() + content.contentHashCode()
 }
+
+val BENCH_DATA = listOf(
+    BenchData("state_changes", "\u001b]2;X\u001b\\ \u001b[0m \u001bP0@\u001b\\".encodeToByteArray())
+    // Note: Additional test data (demo.vte, rg_help.vte, rg_linus.vte) would be loaded from files
+)
+
+/**
+ * Run parser advance benchmark
+ */
+fun benchAdvance(data: BenchData, iterations: Int = 1000): Long {
+    val duration = measureTime {
+        repeat(iterations) {
+            val dispatcher = BenchDispatcher()
+            val parser = Parser<AsciiParser>()
+            for (byte in data.content) {
+                parser.advance(dispatcher, byte.toUByte())
+            }
+        }
+    }
+    return duration.inWholeMilliseconds
+}
+
+/**
+ * Run parser advance with stripping benchmark
+ */
+fun benchAdvanceStrip(data: BenchData, iterations: Int = 1000): Long {
+    val duration = measureTime {
+        repeat(iterations) {
+            val stripped = Strip(data.content.size)
+            val parser = Parser<AsciiParser>()
+            for (byte in data.content) {
+                parser.advance(stripped, byte.toUByte())
+            }
+        }
+    }
+    return duration.inWholeMilliseconds
+}
+
+/**
+ * Run state change benchmark
+ */
+fun benchStateChange(data: BenchData, iterations: Int = 1000): Long {
+    val duration = measureTime {
+        repeat(iterations) {
+            var state = State.Ground
+            for (byte in data.content) {
+                val (nextState, action) = stateChange(state, byte.toUByte())
+                state = nextState
+            }
+        }
+    }
+    return duration.inWholeMilliseconds
+}
+
+/**
+ * Verify that Strip and stripStr produce the same results
+ */
+fun verifyData() {
+    for (data in BENCH_DATA) {
+        val content = data.content.decodeToString()
+
+        val stripped = Strip(content.length)
+        val parser = Parser<AsciiParser>()
+        for (byte in content.encodeToByteArray()) {
+            parser.advance(stripped, byte.toUByte())
+        }
+
+        val expected = stripStr(content)
+        check(stripped.result.toString() == expected) {
+            "Mismatch for ${data.name}: '${stripped.result}' != '$expected'"
+        }
+    }
+    println("All data verified successfully")
+}
+
+// Example main function for running benchmarks:
+// fun main() {
+//     verifyData()
+//
+//     for (data in BENCH_DATA) {
+//         println("Benchmark: ${data.name}")
+//         println("  advance: ${benchAdvance(data)}ms for 1000 iterations")
+//         println("  advance_strip: ${benchAdvanceStrip(data)}ms for 1000 iterations")
+//         println("  state_change: ${benchStateChange(data)}ms for 1000 iterations")
+//     }
+// }

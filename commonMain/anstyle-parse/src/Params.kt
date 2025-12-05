@@ -1,143 +1,157 @@
-//! Fixed size parameters list with optional subparameters.
+package anstyle.parse
 
-use core::fmt::{self, Debug, Formatter};
+/**
+ * Fixed size parameters list with optional subparameters.
+ */
 
-pub(crate) const MAX_PARAMS: usize = 32;
+internal const val MAX_PARAMS: Int = 32
 
-#[derive(Default, Clone, PartialEq, Eq)]
-pub struct Params {
-    /// Number of subparameters for each parameter.
-    ///
-    /// For each entry in the `params` slice, this stores the length of the param as number of
-    /// subparams at the same index as the param in the `params` slice.
-    ///
-    /// At the subparam positions the length will always be `0`.
-    subparams: [u8; MAX_PARAMS],
+/**
+ * Parameters for ANSI escape sequences.
+ *
+ * Stores both parameters and subparameters (separated by `:` in escape sequences).
+ */
+class Params : Iterable<List<UShort>> {
+    /**
+     * Number of subparameters for each parameter.
+     *
+     * For each entry in the `params` array, this stores the length of the param as number of
+     * subparams at the same index as the param in the `params` array.
+     *
+     * At the subparam positions the length will always be `0`.
+     */
+    private val subparams: UByteArray = UByteArray(MAX_PARAMS)
 
-    /// All parameters and subparameters.
-    params: [u16; MAX_PARAMS],
+    /**
+     * All parameters and subparameters.
+     */
+    private val params: UShortArray = UShortArray(MAX_PARAMS)
 
-    /// Number of suparameters in the current parameter.
-    current_subparams: u8,
+    /**
+     * Number of subparameters in the current parameter.
+     */
+    private var currentSubparams: UByte = 0u
 
-    /// Total number of parameters and subparameters.
-    len: usize,
-}
+    /**
+     * Total number of parameters and subparameters.
+     */
+    private var _len: Int = 0
 
-impl Params {
-    /// Returns the number of parameters.
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.len
+    /**
+     * Returns the number of parameters.
+     */
+    fun len(): Int = _len
+
+    /**
+     * Returns `true` if there are no parameters present.
+     */
+    fun isEmpty(): Boolean = _len == 0
+
+    /**
+     * Returns an iterator over all parameters and subparameters.
+     */
+    override fun iterator(): ParamsIter = ParamsIter(this)
+
+    /**
+     * Returns `true` if there is no more space for additional parameters.
+     */
+    internal fun isFull(): Boolean = _len == MAX_PARAMS
+
+    /**
+     * Clear all parameters.
+     */
+    internal fun clear() {
+        currentSubparams = 0u
+        _len = 0
     }
 
-    /// Returns `true` if there are no parameters present.
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
+    /**
+     * Add an additional parameter.
+     */
+    internal fun push(item: UShort) {
+        subparams[_len - currentSubparams.toInt()] = (currentSubparams + 1u).toUByte()
+        params[_len] = item
+        currentSubparams = 0u
+        _len += 1
     }
 
-    /// Returns an iterator over all parameters and subparameters.
-    #[inline]
-    pub fn iter(&self) -> ParamsIter<'_> {
-        ParamsIter::new(self)
+    /**
+     * Add an additional subparameter to the current parameter.
+     */
+    internal fun extend(item: UShort) {
+        subparams[_len - currentSubparams.toInt()] = (currentSubparams + 1u).toUByte()
+        params[_len] = item
+        currentSubparams = (currentSubparams + 1u).toUByte()
+        _len += 1
     }
 
-    /// Returns `true` if there is no more space for additional parameters.
-    #[inline]
-    pub(crate) fn is_full(&self) -> bool {
-        self.len == MAX_PARAMS
-    }
+    /**
+     * Get the subparams array (for iterator access).
+     */
+    internal fun getSubparams(): UByteArray = subparams
 
-    /// Clear all parameters.
-    #[inline]
-    pub(crate) fn clear(&mut self) {
-        self.current_subparams = 0;
-        self.len = 0;
-    }
+    /**
+     * Get the params array (for iterator access).
+     */
+    internal fun getParams(): UShortArray = params
 
-    /// Add an additional parameter.
-    #[inline]
-    pub(crate) fn push(&mut self, item: u16) {
-        self.subparams[self.len - self.current_subparams as usize] = self.current_subparams + 1;
-        self.params[self.len] = item;
-        self.current_subparams = 0;
-        self.len += 1;
-    }
-
-    /// Add an additional subparameter to the current parameter.
-    #[inline]
-    pub(crate) fn extend(&mut self, item: u16) {
-        self.subparams[self.len - self.current_subparams as usize] = self.current_subparams + 1;
-        self.params[self.len] = item;
-        self.current_subparams += 1;
-        self.len += 1;
-    }
-}
-
-impl<'a> IntoIterator for &'a Params {
-    type IntoIter = ParamsIter<'a>;
-    type Item = &'a [u16];
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-
-/// Immutable subparameter iterator.
-pub struct ParamsIter<'a> {
-    params: &'a Params,
-    index: usize,
-}
-
-impl<'a> ParamsIter<'a> {
-    fn new(params: &'a Params) -> Self {
-        Self { params, index: 0 }
-    }
-}
-
-impl<'a> Iterator for ParamsIter<'a> {
-    type Item = &'a [u16];
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.params.len() {
-            return None;
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Params) return false
+        if (_len != other._len) return false
+        for (i in 0 until _len) {
+            if (params[i] != other.params[i]) return false
+            if (subparams[i] != other.subparams[i]) return false
         }
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = _len
+        for (i in 0 until _len) {
+            result = 31 * result + params[i].hashCode()
+            result = 31 * result + subparams[i].hashCode()
+        }
+        return result
+    }
+
+    override fun toString(): String = buildString {
+        append("[")
+        var first = true
+        for (param in this@Params) {
+            if (!first) append(";")
+            first = false
+            var subFirst = true
+            for (subparam in param) {
+                if (!subFirst) append(":")
+                subFirst = false
+                append(subparam)
+            }
+        }
+        append("]")
+    }
+}
+
+/**
+ * Immutable subparameter iterator.
+ */
+class ParamsIter(private val params: Params) : Iterator<List<UShort>> {
+    private var index: Int = 0
+
+    override fun hasNext(): Boolean = index < params.len()
+
+    override fun next(): List<UShort> {
+        if (!hasNext()) throw NoSuchElementException()
 
         // Get all subparameters for the current parameter.
-        let num_subparams = self.params.subparams[self.index];
-        let param = &self.params.params[self.index..self.index + num_subparams as usize];
+        val numSubparams = params.getSubparams()[index].toInt()
+        val paramsArray = params.getParams()
+        val param = (index until index + numSubparams).map { paramsArray[it] }
 
         // Jump to the next parameter.
-        self.index += num_subparams as usize;
+        index += numSubparams
 
-        Some(param)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.params.len() - self.index;
-        (remaining, Some(remaining))
+        return param
     }
 }
 
-impl Debug for Params {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "[")?;
-
-        for (i, param) in self.iter().enumerate() {
-            if i != 0 {
-                write!(f, ";")?;
-            }
-
-            for (i, subparam) in param.iter().enumerate() {
-                if i != 0 {
-                    write!(f, ":")?;
-                }
-
-                subparam.fmt(f)?;
-            }
-        }
-
-        write!(f, "]")
-    }
-}

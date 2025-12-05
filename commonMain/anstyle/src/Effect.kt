@@ -144,8 +144,10 @@ value class Effects(val bits: UShort) : Comparable<Effects> {
 
     override fun toString(): String = buildString {
         append("Effects(")
-        indexIter().forEachIndexed { i, index ->
-            if (i != 0) append(" | ")
+        var first = true
+        for (index in indexIter()) {
+            if (!first) append(" | ")
+            first = false
             append(METADATA[index].name)
         }
         append(")")

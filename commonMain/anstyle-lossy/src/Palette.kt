@@ -1,131 +1,120 @@
-//! Popular color palettes for [`anstyle::AnsiColor`]
-//!
-//! Based on [wikipedia](https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit)
-use anstyle::RgbColor as Rgb;
+package anstyle.lossy
 
-/// A color palette for rendering 4-bit [`anstyle::AnsiColor`]
-#[allow(clippy::exhaustive_structs)]
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct Palette(pub RawPalette);
-type RawPalette = [Rgb; 16];
+import anstyle.Ansi256Color
+import anstyle.AnsiColor
+import anstyle.RgbColor
 
-impl Palette {
-    /// Look up the [`anstyle::RgbColor`] in the palette
-    pub const fn get(&self, color: anstyle::AnsiColor) -> Rgb {
-        let color = anstyle::Ansi256Color::from_ansi(color);
-        *self.get_ansi256_ref(color)
-    }
-    const fn get_ansi256_ref(&self, color: anstyle::Ansi256Color) -> &Rgb {
-        let index = color.index() as usize;
-        &self.0[index]
+/**
+ * A color palette for rendering 4-bit [AnsiColor].
+ *
+ * Based on [wikipedia](https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit)
+ */
+data class Palette(val colors: Array<RgbColor>) {
+
+    init {
+        require(colors.size == 16) { "Palette must have exactly 16 colors" }
     }
 
-    pub(crate) const fn rgb_from_ansi(&self, color: anstyle::AnsiColor) -> anstyle::RgbColor {
-        self.get(color)
+    /**
+     * Look up the [RgbColor] in the palette for the given [AnsiColor].
+     */
+    operator fun get(color: AnsiColor): RgbColor {
+        val index = Ansi256Color.fromAnsi(color).index.toInt()
+        return colors[index]
     }
 
-    pub(crate) const fn rgb_from_index(&self, index: u8) -> Option<anstyle::RgbColor> {
-        let index = index as usize;
-        if index < self.0.len() {
-            Some(self.0[index])
-        } else {
-            None
-        }
+    /**
+     * Look up the [RgbColor] in the palette for the given 256-color index.
+     */
+    fun getByIndex(index: UByte): RgbColor? {
+        val idx = index.toInt()
+        return if (idx < colors.size) colors[idx] else null
     }
 
-    pub(crate) const fn find_match(&self, color: anstyle::RgbColor) -> anstyle::AnsiColor {
-        let mut best_index = 0;
-        let mut best_distance = crate::distance(color, self.0[best_index]);
+    /**
+     * Convert an [AnsiColor] to its RGB representation using this palette.
+     */
+    fun rgbFromAnsi(color: AnsiColor): RgbColor = get(color)
 
-        let mut index = best_index + 1;
-        while index < self.0.len() {
-            let distance = crate::distance(color, self.0[index]);
-            if distance < best_distance {
-                best_index = index;
-                best_distance = distance;
+    /**
+     * Find the closest [AnsiColor] match for the given RGB color.
+     */
+    fun findMatch(color: RgbColor): AnsiColor {
+        var bestIndex = 0
+        var bestDistance = distance(color, colors[bestIndex])
+
+        for (index in 1 until colors.size) {
+            val dist = distance(color, colors[index])
+            if (dist < bestDistance) {
+                bestIndex = index
+                bestDistance = dist
             }
-
-            index += 1;
         }
 
-        if let Some(color) = anstyle::Ansi256Color(best_index as u8).into_ansi() {
-            color
-        } else {
-            // Panic
-            #[allow(clippy::no_effect)]
-            ["best_index is out of bounds"][best_index];
-            // Make compiler happy
-            anstyle::AnsiColor::Black
-        }
+        return Ansi256Color(bestIndex.toUByte()).intoAnsi()
+            ?: error("bestIndex $bestIndex is out of bounds for AnsiColor")
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Palette) return false
+        return colors.contentEquals(other.colors)
+    }
+
+    override fun hashCode(): Int = colors.contentHashCode()
+
+    companion object {
+        /**
+         * Typical colors that are used when booting PCs and leaving them in text mode.
+         */
+        val VGA: Palette = Palette(
+            arrayOf(
+                RgbColor(0u, 0u, 0u),
+                RgbColor(170u, 0u, 0u),
+                RgbColor(0u, 170u, 0u),
+                RgbColor(170u, 85u, 0u),
+                RgbColor(0u, 0u, 170u),
+                RgbColor(170u, 0u, 170u),
+                RgbColor(0u, 170u, 170u),
+                RgbColor(170u, 170u, 170u),
+                RgbColor(85u, 85u, 85u),
+                RgbColor(255u, 85u, 85u),
+                RgbColor(85u, 255u, 85u),
+                RgbColor(255u, 255u, 85u),
+                RgbColor(85u, 85u, 255u),
+                RgbColor(255u, 85u, 255u),
+                RgbColor(85u, 255u, 255u),
+                RgbColor(255u, 255u, 255u),
+            )
+        )
+
+        /**
+         * Campbell theme, used as of Windows 10 version 1709.
+         */
+        val WIN10_CONSOLE: Palette = Palette(
+            arrayOf(
+                RgbColor(12u, 12u, 12u),
+                RgbColor(197u, 15u, 31u),
+                RgbColor(19u, 161u, 14u),
+                RgbColor(193u, 156u, 0u),
+                RgbColor(0u, 55u, 218u),
+                RgbColor(136u, 23u, 152u),
+                RgbColor(58u, 150u, 221u),
+                RgbColor(204u, 204u, 204u),
+                RgbColor(118u, 118u, 118u),
+                RgbColor(231u, 72u, 86u),
+                RgbColor(22u, 198u, 12u),
+                RgbColor(249u, 241u, 165u),
+                RgbColor(59u, 120u, 255u),
+                RgbColor(180u, 0u, 158u),
+                RgbColor(97u, 214u, 214u),
+                RgbColor(242u, 242u, 242u),
+            )
+        )
+
+        /**
+         * Platform-specific default palette.
+         */
+        val DEFAULT: Palette = VGA
     }
 }
-
-impl Default for Palette {
-    fn default() -> Self {
-        DEFAULT
-    }
-}
-
-impl std::ops::Index<anstyle::AnsiColor> for Palette {
-    type Output = Rgb;
-
-    #[inline]
-    fn index(&self, color: anstyle::AnsiColor) -> &Rgb {
-        let color = anstyle::Ansi256Color::from_ansi(color);
-        self.get_ansi256_ref(color)
-    }
-}
-
-impl From<RawPalette> for Palette {
-    fn from(raw: RawPalette) -> Self {
-        Self(raw)
-    }
-}
-
-/// Platform-specific default
-#[cfg(not(windows))]
-pub use VGA as DEFAULT;
-
-/// Platform-specific default
-#[cfg(windows)]
-pub use WIN10_CONSOLE as DEFAULT;
-
-/// Typical colors that are used when booting PCs and leaving them in text mode
-pub const VGA: Palette = Palette([
-    Rgb(0, 0, 0),
-    Rgb(170, 0, 0),
-    Rgb(0, 170, 0),
-    Rgb(170, 85, 0),
-    Rgb(0, 0, 170),
-    Rgb(170, 0, 170),
-    Rgb(0, 170, 170),
-    Rgb(170, 170, 170),
-    Rgb(85, 85, 85),
-    Rgb(255, 85, 85),
-    Rgb(85, 255, 85),
-    Rgb(255, 255, 85),
-    Rgb(85, 85, 255),
-    Rgb(255, 85, 255),
-    Rgb(85, 255, 255),
-    Rgb(255, 255, 255),
-]);
-
-/// Campbell theme, used as of Windows 10 version 1709.
-pub const WIN10_CONSOLE: Palette = Palette([
-    Rgb(12, 12, 12),
-    Rgb(197, 15, 31),
-    Rgb(19, 161, 14),
-    Rgb(193, 156, 0),
-    Rgb(0, 55, 218),
-    Rgb(136, 23, 152),
-    Rgb(58, 150, 221),
-    Rgb(204, 204, 204),
-    Rgb(118, 118, 118),
-    Rgb(231, 72, 86),
-    Rgb(22, 198, 12),
-    Rgb(249, 241, 165),
-    Rgb(59, 120, 255),
-    Rgb(180, 0, 158),
-    Rgb(97, 214, 214),
-    Rgb(242, 242, 242),
-]);

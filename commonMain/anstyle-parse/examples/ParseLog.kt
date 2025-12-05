@@ -1,72 +1,81 @@
-//! Parse input from stdin and log actions on stdout
-use std::io::{self, Read};
+package anstyle.parse.examples
 
-use anstyle_parse::{DefaultCharAccumulator, Params, Parser, Perform};
+// Parse input from stdin and log actions on stdout
 
-/// A type implementing Perform that just logs actions
-struct Log;
+import anstyle.parse.AsciiParser
+import anstyle.parse.Params
+import anstyle.parse.Parser
+import anstyle.parse.Perform
 
-impl Perform for Log {
-    fn print(&mut self, c: char) {
-        println!("[print] {c:?}");
+// Rust original:
+// use std::io::{self, Read};
+// use anstyle_parse::{DefaultCharAccumulator, Params, Parser, Perform};
+
+/**
+ * A type implementing Perform that just logs actions
+ */
+class Log : Perform {
+    override fun print(c: Char) {
+        println("[print] '$c'")
     }
 
-    fn execute(&mut self, byte: u8) {
-        println!("[execute] {byte:02x}");
+    override fun execute(byte: UByte) {
+        println("[execute] ${byte.toString(16).padStart(2, '0')}")
     }
 
-    fn hook(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: u8) {
-        println!(
-            "[hook] params={params:?}, intermediates={intermediates:?}, ignore={ignore:?}, char={c:?}"
-        );
+    override fun hook(params: Params, intermediates: UByteArray, ignore: Boolean, action: UByte) {
+        val paramsStr = params.toList().map { it.toList() }
+        val intermediatesStr = intermediates.toList()
+        println("[hook] params=$paramsStr, intermediates=$intermediatesStr, ignore=$ignore, char=$action")
     }
 
-    fn put(&mut self, byte: u8) {
-        println!("[put] {byte:02x}");
+    override fun put(byte: UByte) {
+        println("[put] ${byte.toString(16).padStart(2, '0')}")
     }
 
-    fn unhook(&mut self) {
-        println!("[unhook]");
+    override fun unhook() {
+        println("[unhook]")
     }
 
-    fn osc_dispatch(&mut self, params: &[&[u8]], bell_terminated: bool) {
-        println!("[osc_dispatch] params={params:?} bell_terminated={bell_terminated}");
+    override fun oscDispatch(params: Array<ByteArray>, bellTerminated: Boolean) {
+        val paramsStr = params.map { it.toList() }
+        println("[osc_dispatch] params=$paramsStr bell_terminated=$bellTerminated")
     }
 
-    fn csi_dispatch(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: u8) {
-        println!(
-            "[csi_dispatch] params={params:#?}, intermediates={intermediates:?}, ignore={ignore:?}, char={c:?}"
-        );
+    override fun csiDispatch(params: Params, intermediates: UByteArray, ignore: Boolean, action: UByte) {
+        val paramsStr = params.toList().map { it.toList() }
+        val intermediatesStr = intermediates.toList()
+        println("[csi_dispatch] params=$paramsStr, intermediates=$intermediatesStr, ignore=$ignore, char=$action")
     }
 
-    fn esc_dispatch(&mut self, intermediates: &[u8], ignore: bool, byte: u8) {
-        println!(
-            "[esc_dispatch] intermediates={intermediates:?}, ignore={ignore:?}, byte={byte:02x}"
-        );
+    override fun escDispatch(intermediates: UByteArray, ignore: Boolean, byte: UByte) {
+        val intermediatesStr = intermediates.toList()
+        println("[esc_dispatch] intermediates=$intermediatesStr, ignore=$ignore, byte=${byte.toString(16).padStart(2, '0')}")
+    }
+}
+
+/**
+ * Parse the given byte array and log all ANSI sequences found
+ */
+fun parseAndLog(input: ByteArray) {
+    val parser = Parser<AsciiParser>()
+    val performer = Log()
+
+    for (byte in input) {
+        parser.advance(performer, byte.toUByte())
     }
 }
 
-fn main() {
-    let input = io::stdin();
-    let mut handle = input.lock();
-
-    let mut statemachine = Parser::<DefaultCharAccumulator>::new();
-    let mut performer = Log;
-
-    let mut buf = [0; 2048];
-
-    loop {
-        match handle.read(&mut buf) {
-            Ok(0) => break,
-            Ok(n) => {
-                for byte in &buf[..n] {
-                    statemachine.advance(&mut performer, *byte);
-                }
-            }
-            Err(err) => {
-                println!("err: {err}");
-                break;
-            }
-        }
-    }
+/**
+ * Parse a string and log all ANSI sequences found
+ */
+fun parseAndLog(input: String) {
+    parseAndLog(input.encodeToByteArray())
 }
+
+// Note: In Kotlin/Native, main function with stdin reading would be:
+// fun main() {
+//     // Read from stdin and process
+//     val input = generateSequence(::readLine).joinToString("\n")
+//     parseAndLog(input)
+// }
