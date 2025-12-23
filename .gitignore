@@ -1,2 +1,19 @@
-target
+# Gradle
 /build/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+
+# Environment
+.direnv
+.envrc
+
+# Kotlin/Native
+*.kexe
+*.klib
+
+# Android SDK
+/.android-sdk/
+local.properties
