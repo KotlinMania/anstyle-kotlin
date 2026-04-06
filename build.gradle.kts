@@ -10,26 +10,18 @@ plugins {
 }
 
 group = "io.github.kotlinmania"
-version = "0.1.2"
+version = "0.1.3"
 
-// Setup Android SDK location and licenses automatically
-val sdkDir = file(".android-sdk")
-val licensesDir = sdkDir.resolve("licenses")
-if (!licensesDir.exists()) licensesDir.mkdirs()
-val licenseFile = licensesDir.resolve("android-sdk-license")
-if (!licenseFile.exists()) {
-    licenseFile.writeText(
-        """
-        8933bad161af4178b1185d1a37fbf41ea5269c55
-        d56f5187479451eabf01fb74abc367c344559d7b
-        24333f8a63b6825ea9c5514f83c2829b004d1fee
-        """.trimIndent()
-    )
-}
-val localProperties: File? = rootProject.file("local.properties")
-if (!localProperties?.exists()!!) {
-    val sdkDirPropertyValue = sdkDir.absolutePath.replace("\\", "/")
-    localProperties.writeText("sdk.dir=$sdkDirPropertyValue")
+val androidSdkDir: String? =
+    providers.environmentVariable("ANDROID_SDK_ROOT").orNull
+        ?: providers.environmentVariable("ANDROID_HOME").orNull
+
+if (androidSdkDir != null && file(androidSdkDir).exists()) {
+    val localProperties = rootProject.file("local.properties")
+    if (!localProperties.exists()) {
+        val sdkDirPropertyValue = file(androidSdkDir).absolutePath.replace("\\", "/")
+        localProperties.writeText("sdk.dir=$sdkDirPropertyValue")
+    }
 }
 
 kotlin {
@@ -82,8 +74,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("io.github.kotlinmania:roff-kotlin:0.1.2")
-                implementation("io.github.kotlinmania:cansi-kotlin:0.1.2")
+                implementation("io.github.kotlinmania:roff-kotlin:0.1.3")
+                implementation("io.github.kotlinmania:cansi-kotlin:0.1.3")
             }
         }
         val commonTest by getting {
