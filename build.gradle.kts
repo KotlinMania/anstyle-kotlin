@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "io.github.kotlinmania"
-version = "0.1.1"
+version = "0.1.2"
 
 // Setup Android SDK location and licenses automatically
 val sdkDir = file(".android-sdk")
@@ -82,8 +82,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("io.github.kotlinmania:roff-kotlin:0.1.1")
-                implementation("io.github.kotlinmania:cansi-kotlin:0.1.1")
+                implementation("io.github.kotlinmania:roff-kotlin:0.1.2")
+                implementation("io.github.kotlinmania:cansi-kotlin:0.1.2")
             }
         }
         val commonTest by getting {
