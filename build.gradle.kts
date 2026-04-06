@@ -28,7 +28,8 @@ if (!licenseFile.exists()) {
 }
 val localProperties: File? = rootProject.file("local.properties")
 if (!localProperties?.exists()!!) {
-    localProperties.writeText("sdk.dir=${sdkDir.absolutePath}")
+    val sdkDirPropertyValue = sdkDir.absolutePath.replace("\\", "/")
+    localProperties.writeText("sdk.dir=$sdkDirPropertyValue")
 }
 
 kotlin {
@@ -82,7 +83,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation("io.github.kotlinmania:roff-kotlin:0.1.1")
-                implementation("io.github.kotlinmania:cansi-kotlin:0.1.0")
+                implementation("io.github.kotlinmania:cansi-kotlin:0.1.1")
             }
         }
         val commonTest by getting {
