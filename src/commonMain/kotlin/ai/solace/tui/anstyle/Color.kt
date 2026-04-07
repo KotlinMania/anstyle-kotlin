@@ -511,7 +511,7 @@ data class RgbColor(val r: UByte, val g: UByte, val b: UByte) : Comparable<RgbCo
 // Extension function for Triple to RgbColor conversion
 fun Triple<UByte, UByte, UByte>.toRgbColor(): RgbColor = RgbColor(first, second, third)
 
-private const val DISPLAY_BUFFER_CAPACITY: Int = 19
+internal const val DISPLAY_BUFFER_CAPACITY: Int = 19
 
 /**
  * Internal buffer for building ANSI escape sequences.
