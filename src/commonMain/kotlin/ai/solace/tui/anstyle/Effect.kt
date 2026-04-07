@@ -8,7 +8,7 @@ package ai.solace.tui.anstyle
  * val effects = Effects.BOLD or Effects.UNDERLINE
  * ```
  */
-value class Effects(val bits: UShort) : Comparable<Effects> {
+data class Effects(val bits: UShort) : Comparable<Effects> {
 
     override fun compareTo(other: Effects): Int = bits.compareTo(other.bits)
 

@@ -6,8 +6,7 @@ import kotlin.test.assertEquals
 class EffectsTest {
     @Test
     fun printSizeOf() {
-        // Effects is a value class wrapping UShort.
-        println("Effects: value class wrapping UShort (2 bytes)")
+        println("Effects: data class wrapping UShort")
         println("EffectsDisplay: class wrapping Effects")
     }
 
@@ -31,4 +30,3 @@ class EffectsTest {
         assertEquals("Effects(BOLD | UNDERLINE)", effects2.toString())
     }
 }
-
