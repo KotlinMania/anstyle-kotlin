@@ -56,11 +56,6 @@ data class Style(
     fun fgColor(fg: Color?): Style = copy(fg = fg)
 
     /**
-     * Set foreground color (convenience overload)
-     */
-    fun fgColor(fg: Color): Style = copy(fg = fg)
-
-    /**
      * Set background color
      *
      * Example:
@@ -69,11 +64,6 @@ data class Style(
      * ```
      */
     fun bgColor(bg: Color?): Style = copy(bg = bg)
-
-    /**
-     * Set background color (convenience overload)
-     */
-    fun bgColor(bg: Color): Style = copy(bg = bg)
 
     /**
      * Set underline color
