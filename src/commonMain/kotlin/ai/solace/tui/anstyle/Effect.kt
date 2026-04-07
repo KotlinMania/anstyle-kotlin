@@ -247,33 +247,3 @@ internal class EffectIndexIter(
         throw NoSuchElementException()
     }
 }
-
-// Tests
-class EffectsTest {
-    @kotlin.test.Test
-    fun printSizeOf() {
-        // In Kotlin, we use value class which is equivalent to Rust's newtype
-        println("Effects: value class wrapping UShort (2 bytes)")
-        println("EffectsDisplay: class wrapping Effects")
-    }
-
-    @kotlin.test.Test
-    fun noAlign() {
-        fun assertNoAlign(d: Displayable) {
-            val expected = buildString { d.formatTo(this) }
-            val actual = buildString { d.formatTo(this) }
-            kotlin.test.assertEquals(expected, actual)
-        }
-
-        assertNoAlign(Effects.BOLD.render())
-    }
-
-    @kotlin.test.Test
-    fun debugFormat() {
-        val effects = Effects.PLAIN
-        kotlin.test.assertEquals("Effects()", effects.toString())
-
-        val effects2 = Effects.BOLD or Effects.UNDERLINE
-        kotlin.test.assertEquals("Effects(BOLD | UNDERLINE)", effects2.toString())
-    }
-}

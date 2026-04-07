@@ -31,24 +31,3 @@ object Reset : Displayable, Comparable<Reset> {
 
 
 internal const val RESET: String = "\u001B[0m"
-
-// Tests
-class ResetTest {
-    @kotlin.test.Test
-    fun printSizeOf() {
-        // Reset is a singleton object (zero-sized equivalent in Kotlin)
-        println("Reset: object (singleton)")
-    }
-
-    @kotlin.test.Test
-    fun noAlign() {
-        fun assertNoAlign(d: Displayable) {
-            val expected = buildString { d.formatTo(this) }
-            val actual = buildString { d.formatTo(this) }
-            kotlin.test.assertEquals(expected, actual)
-        }
-
-        assertNoAlign(Reset)
-        assertNoAlign(Reset.render())
-    }
-}

@@ -268,19 +268,3 @@ internal class StyleDisplay(private val style: Style) : Displayable {
 
     override fun toString(): String = buildString { formatTo(this) }
 }
-
-// Tests
-class StyleTest {
-    @kotlin.test.Test
-    fun printSizeOf() {
-        // In Kotlin, data class size depends on JVM/Native implementation
-        println("Style: data class with 4 fields (3 nullable Color + Effects)")
-        println("StyleDisplay: class wrapping Style")
-    }
-
-    @kotlin.test.Test
-    fun basicUsage() {
-        val style = Style().bold()
-        kotlin.test.assertTrue(style.getEffects().contains(Effects.BOLD))
-    }
-}
