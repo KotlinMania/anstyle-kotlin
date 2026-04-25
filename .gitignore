@@ -16,6 +16,9 @@
 
 # Android SDK
 /android-sdk/
+/.android-sdk/
 local.properties
 .DS_Store
-.android-sdk/licenses/android-sdk-license
+
+# Kotlin/JS yarn lockfile
+kotlin-js-store/
