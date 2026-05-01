@@ -31,6 +31,10 @@ kotlin {
         allWarningsAsErrors.set(true)
     }
 
+    sourceSets.all {
+        languageSettings.optIn("kotlin.ExperimentalUnsignedTypes")
+    }
+
     val xcf = XCFramework("Anstyle")
 
     macosArm64 {
