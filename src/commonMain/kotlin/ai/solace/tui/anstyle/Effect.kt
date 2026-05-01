@@ -84,7 +84,7 @@ data class Effects(val bits: UShort) : Comparable<Effects> {
      * assert(effects.contains(Effects.BOLD))
      * ```
      */
-    fun insert(other: Effects): Effects = Effects((bits or other.bits).toUShort())
+    fun insert(other: Effects): Effects = Effects(bits or other.bits)
 
     /**
      * Removes the specified effects.
@@ -96,7 +96,7 @@ data class Effects(val bits: UShort) : Comparable<Effects> {
      * assert(effects.contains(Effects.UNDERLINE))
      * ```
      */
-    fun remove(other: Effects): Effects = Effects((bits and other.bits.inv()).toUShort())
+    fun remove(other: Effects): Effects = Effects(bits and other.bits.inv())
 
     /**
      * Reset all effects
