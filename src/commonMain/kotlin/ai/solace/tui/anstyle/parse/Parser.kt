@@ -4,6 +4,15 @@ import ai.solace.tui.anstyle.parse.state.Action
 import ai.solace.tui.anstyle.parse.state.State
 import ai.solace.tui.anstyle.parse.state.stateChange
 
+inline fun <reified C : CharAccumulator> Parser(): Parser<C> {
+    val accumulator = when (C::class) {
+        AsciiParser::class -> AsciiParser()
+        Utf8Parser::class -> Utf8Parser()
+        else -> error("No default CharAccumulator for ${C::class}")
+    }
+    return Parser(accumulator as C)
+}
+
 /**
  * Parser for implementing virtual terminal emulators.
  *
@@ -28,11 +37,6 @@ class Parser<C : CharAccumulator>(
     private val oscParams: Array<Pair<Int, Int>> = Array(MAX_OSC_PARAMS) { 0 to 0 }
     private var oscNumParams: Int = 0
     private var ignoring: Boolean = false
-
-    /**
-     * Create a new Parser with default ASCII parser.
-     */
-    constructor() : this((AsciiParser() as C))
 
     /**
      * Get the current parameters.
