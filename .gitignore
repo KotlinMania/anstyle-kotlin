@@ -20,5 +20,8 @@
 local.properties
 .DS_Store
 
-# Kotlin/JS yarn lockfile
-kotlin-js-store/
+# Kotlin/JS package manager state
+kotlin-js-store/*
+!kotlin-js-store/yarn.lock
+!kotlin-js-store/wasm/
+!kotlin-js-store/wasm/yarn.lock
