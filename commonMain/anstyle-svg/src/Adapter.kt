@@ -1,4 +1,4 @@
-/// Incrementally convert to styled string fragments for non-contiguous data
+/** Incrementally convert to styled string fragments for non-contiguous data */
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub(crate) struct AnsiBytes {
     parser: anstyle_parse::Parser,
@@ -6,12 +6,12 @@ pub(crate) struct AnsiBytes {
 }
 
 impl AnsiBytes {
-    /// Initial state
+    /** Initial state */
     pub(crate) fn new() -> Self {
         Default::default()
     }
 
-    /// Strip the next segment of data
+    /** Strip the next segment of data */
     pub(crate) fn extract_next<'s>(&'s mut self, bytes: &'s [u8]) -> AnsiBytesIter<'s> {
         self.capture.reset();
         self.capture.printable.reserve(bytes.len());
@@ -23,7 +23,7 @@ impl AnsiBytes {
     }
 }
 
-/// See [`AnsiBytes`]
+/** See [`AnsiBytes`] */
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct AnsiBytesIter<'s> {
     bytes: &'s [u8],
@@ -83,12 +83,12 @@ impl AnsiCapture {
 }
 
 impl anstyle_parse::Perform for AnsiCapture {
-    /// Draw a character to the screen and update states.
+    /** Draw a character to the screen and update states. */
     fn print(&mut self, c: char) {
         self.printable.push(c);
     }
 
-    /// Execute a C0 or C1 control function.
+    /** Execute a C0 or C1 control function. */
     fn execute(&mut self, byte: u8) {
         if byte.is_ascii_whitespace() {
             self.printable.push(byte as char);

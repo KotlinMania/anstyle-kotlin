@@ -11,10 +11,8 @@ import anstyle.or
 // Rust original:
 // use std::io::Write;
 //
-// fn main() -> Result<(), lexopt::Error> {
 //     let args = Args::parse()?;
 //     ...
-// }
 
 /**
  * Layer determines where the color is applied

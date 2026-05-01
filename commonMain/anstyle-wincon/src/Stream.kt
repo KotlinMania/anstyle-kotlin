@@ -1,6 +1,6 @@
-/// Extend `std::io::Write` with wincon styling
+/** Extend `std::io::Write` with wincon styling */
 pub trait WinconStream {
-    /// Write colored text to the stream
+    /** Write colored text to the stream */
     fn write_colored(
         &mut self,
         fg: Option<anstyle::AnsiColor>,

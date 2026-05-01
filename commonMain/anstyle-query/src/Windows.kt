@@ -65,14 +65,16 @@ mod windows_console {
     }
 }
 
-/// Enable ANSI escape codes ([`ENABLE_VIRTUAL_TERMINAL_PROCESSING`](https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#output-sequences))
-///
-/// For non-windows systems, returns `None`
+/**
+ * Enable ANSI escape codes ([`ENABLE_VIRTUAL_TERMINAL_PROCESSING`](https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#output-sequences))
+ *
+ * For non-windows systems, returns `None`
+ */
 pub fn enable_ansi_colors() -> Option<bool> {
     windows_console::enable_ansi_colors()
 }
 
-/// Raw `ENABLE_VIRTUAL_TERMINAL_PROCESSING` on stdout/stderr
+/** Raw `ENABLE_VIRTUAL_TERMINAL_PROCESSING` on stdout/stderr */
 #[cfg(windows)]
 pub fn enable_virtual_terminal_processing() -> std::io::Result<()> {
     windows_console::enable_virtual_terminal_processing()

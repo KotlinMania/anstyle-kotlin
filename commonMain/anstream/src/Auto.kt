@@ -5,16 +5,18 @@ use crate::StripStream;
 #[cfg(all(windows, feature = "wincon"))]
 use crate::WinconStream;
 
-/// [`std::io::Write`] that adapts ANSI escape codes to the underlying `Write`s capabilities
-///
-/// This includes
-/// - Stripping colors for non-terminals
-/// - Respecting env variables like [NO_COLOR](https://no-color.org/) or [CLICOLOR](https://bixense.com/clicolors/)
-/// - *(windows)* Falling back to the wincon API where [ENABLE_VIRTUAL_TERMINAL_PROCESSING](https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#output-sequences) is unsupported
-///
-/// You can customize auto-detection by calling into
-/// [anstyle_query](https://docs.rs/anstyle-query/latest/anstyle_query/)
-/// to get a [`ColorChoice`] and then calling [`AutoStream::new(stream, choice)`].
+/**
+ * [`std::io::Write`] that adapts ANSI escape codes to the underlying `Write`s capabilities
+ *
+ * This includes
+ * - Stripping colors for non-terminals
+ * - Respecting env variables like [NO_COLOR](https://no-color.org/) or [CLICOLOR](https://bixense.com/clicolors/)
+ * - *(windows)* Falling back to the wincon API where [ENABLE_VIRTUAL_TERMINAL_PROCESSING](https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#output-sequences) is unsupported
+ *
+ * You can customize auto-detection by calling into
+ * [anstyle_query](https://docs.rs/anstyle-query/latest/anstyle_query/)
+ * to get a [`ColorChoice`] and then calling [`AutoStream::new(stream, choice)`].
+ */
 #[derive(Debug)]
 pub struct AutoStream<S: RawStream> {
     inner: StreamInner<S>,
@@ -32,32 +34,34 @@ impl<S> AutoStream<S>
 where
     S: RawStream,
 {
-    /// Runtime control over styling behavior
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # #[cfg(feature = "auto")] {
-    /// # use std::io::IsTerminal as _;
-    /// // Like `AutoStream::choice` but without `NO_COLOR`, `CLICOLOR_FORCE`, `CI`
-    /// fn choice(raw: &dyn anstream::stream::RawStream) -> anstream::ColorChoice {
-    ///     let choice = anstream::ColorChoice::global();
-    ///     if choice == anstream::ColorChoice::Auto {
-    ///         if raw.is_terminal() && anstyle_query::term_supports_color() {
-    ///             anstream::ColorChoice::Always
-    ///         } else {
-    ///             anstream::ColorChoice::Never
-    ///         }
-    ///     } else {
-    ///         choice
-    ///     }
-    /// }
-    ///
-    /// let stream = std::io::stdout();
-    /// let choice = choice(&stream);
-    /// let auto = anstream::AutoStream::new(stream, choice);
-    /// # }
-    /// ```
+    /**
+     * Runtime control over styling behavior
+     *
+     * # Example
+     *
+     * ```rust
+     * # #[cfg(feature = "auto")] {
+     * # use std::io::IsTerminal as _;
+     * // Like `AutoStream::choice` but without `NO_COLOR`, `CLICOLOR_FORCE`, `CI`
+     * fn choice(raw: &dyn anstream::stream::RawStream) -> anstream::ColorChoice {
+     * let choice = anstream::ColorChoice::global();
+     * if choice == anstream::ColorChoice::Auto {
+     * if raw.is_terminal() && anstyle_query::term_supports_color() {
+     * anstream::ColorChoice::Always
+     * } else {
+     * anstream::ColorChoice::Never
+     * }
+     * } else {
+     * choice
+     * }
+     * }
+     *
+     * let stream = std::io::stdout();
+     * let choice = choice(&stream);
+     * let auto = anstream::AutoStream::new(stream, choice);
+     * # }
+     * ```
+     */
     #[inline]
     pub fn new(raw: S, choice: ColorChoice) -> Self {
         match choice {
@@ -71,7 +75,7 @@ where
         }
     }
 
-    /// Auto-adapt for the stream's capabilities
+    /** Auto-adapt for the stream's capabilities */
     #[cfg(feature = "auto")]
     #[inline]
     pub fn auto(raw: S) -> Self {
@@ -80,14 +84,16 @@ where
         Self::new(raw, choice)
     }
 
-    /// Report the desired choice for the given stream
+    /** Report the desired choice for the given stream */
     #[cfg(feature = "auto")]
     pub fn choice(raw: &S) -> ColorChoice {
         choice(raw)
     }
 
-    /// Force ANSI escape codes to be passed through as-is, no matter what the inner `Write`
-    /// supports.
+    /**
+     * Force ANSI escape codes to be passed through as-is, no matter what the inner `Write`
+     * supports.
+     */
     #[inline]
     pub fn always_ansi(raw: S) -> Self {
         #[cfg(feature = "auto")]
@@ -105,7 +111,7 @@ where
         AutoStream { inner }
     }
 
-    /// Force color, no matter what the inner `Write` supports.
+    /** Force color, no matter what the inner `Write` supports. */
     #[inline]
     pub fn always(raw: S) -> Self {
         if cfg!(windows) {
@@ -125,7 +131,7 @@ where
         }
     }
 
-    /// Only pass printable data to the inner `Write`.
+    /** Only pass printable data to the inner `Write`. */
     #[inline]
     pub fn never(raw: S) -> Self {
         let inner = StreamInner::Strip(StripStream::new(raw));
@@ -146,7 +152,7 @@ where
         }
     }
 
-    /// Get the wrapped [`RawStream`]
+    /** Get the wrapped [`RawStream`] */
     #[inline]
     pub fn into_inner(self) -> S {
         match self.inner {
@@ -157,7 +163,7 @@ where
         }
     }
 
-    /// Get the wrapped [`RawStream`]
+    /** Get the wrapped [`RawStream`] */
     #[inline]
     pub fn as_inner(&self) -> &S {
         match &self.inner {
@@ -168,7 +174,7 @@ where
         }
     }
 
-    /// Returns `true` if the descriptor/handle refers to a terminal/tty.
+    /** Returns `true` if the descriptor/handle refers to a terminal/tty. */
     #[inline]
     pub fn is_terminal(&self) -> bool {
         match &self.inner {
@@ -179,9 +185,11 @@ where
         }
     }
 
-    /// Prefer [`AutoStream::choice`]
-    ///
-    /// This doesn't report what is requested but what is currently active.
+    /**
+     * Prefer [`AutoStream::choice`]
+     *
+     * This doesn't report what is requested but what is currently active.
+     */
     #[inline]
     #[cfg(feature = "auto")]
     pub fn current_choice(&self) -> ColorChoice {
@@ -223,11 +231,13 @@ fn choice(raw: &dyn RawStream) -> ColorChoice {
 }
 
 impl AutoStream<std::io::Stdout> {
-    /// Get exclusive access to the `AutoStream`
-    ///
-    /// Why?
-    /// - Faster performance when writing in a loop
-    /// - Avoid other threads interleaving output with the current thread
+    /**
+     * Get exclusive access to the `AutoStream`
+     *
+     * Why?
+     * - Faster performance when writing in a loop
+     * - Avoid other threads interleaving output with the current thread
+     */
     #[inline]
     pub fn lock(self) -> AutoStream<std::io::StdoutLock<'static>> {
         let inner = match self.inner {
@@ -241,11 +251,13 @@ impl AutoStream<std::io::Stdout> {
 }
 
 impl AutoStream<std::io::Stderr> {
-    /// Get exclusive access to the `AutoStream`
-    ///
-    /// Why?
-    /// - Faster performance when writing in a loop
-    /// - Avoid other threads interleaving output with the current thread
+    /**
+     * Get exclusive access to the `AutoStream`
+     *
+     * Why?
+     * - Faster performance when writing in a loop
+     * - Avoid other threads interleaving output with the current thread
+     */
     #[inline]
     pub fn lock(self) -> AutoStream<std::io::StderrLock<'static>> {
         let inner = match self.inner {

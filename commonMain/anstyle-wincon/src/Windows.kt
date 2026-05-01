@@ -6,23 +6,25 @@ use std::os::windows::io::AsRawHandle;
 type StdioColorResult = std::io::Result<(anstyle::AnsiColor, anstyle::AnsiColor)>;
 type StdioColorInnerResult = Result<(anstyle::AnsiColor, anstyle::AnsiColor), inner::IoError>;
 
-/// Cached [`get_colors`] call for [`std::io::stdout`]
+/** Cached [`get_colors`] call for [`std::io::stdout`] */
 pub fn stdout_initial_colors() -> StdioColorResult {
     static INITIAL: once_cell_polyfill::sync::OnceLock<StdioColorInnerResult> =
         once_cell_polyfill::sync::OnceLock::new();
     (*INITIAL.get_or_init(|| get_colors_(&std::io::stdout()))).map_err(Into::into)
 }
 
-/// Cached [`get_colors`] call for [`std::io::stderr`]
+/** Cached [`get_colors`] call for [`std::io::stderr`] */
 pub fn stderr_initial_colors() -> StdioColorResult {
     static INITIAL: once_cell_polyfill::sync::OnceLock<StdioColorInnerResult> =
         once_cell_polyfill::sync::OnceLock::new();
     (*INITIAL.get_or_init(|| get_colors_(&std::io::stderr()))).map_err(Into::into)
 }
 
-/// Apply colors to future writes
-///
-/// **Note:** Make sure any buffers are first flushed or else these colors will apply
+/**
+ * Apply colors to future writes
+ *
+ * **Note:** Make sure any buffers are first flushed or else these colors will apply
+ */
 pub fn set_colors<S: AsHandle>(
     stream: &mut S,
     fg: anstyle::AnsiColor,
@@ -42,7 +44,7 @@ fn set_colors_<S: AsHandle>(
     inner::set_console_text_attributes(handle, attributes)
 }
 
-/// Get the colors currently active on the console
+/** Get the colors currently active on the console */
 pub fn get_colors<S: AsHandle>(stream: &S) -> StdioColorResult {
     get_colors_(stream).map_err(Into::into)
 }

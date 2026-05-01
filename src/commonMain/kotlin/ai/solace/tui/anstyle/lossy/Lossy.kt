@@ -171,7 +171,6 @@ internal fun distance(c1: RgbColor, c2: RgbColor): UInt {
  * Indices 16-231 are the 6x6x6 color cube.
  * Indices 232-255 are the grayscale ramp.
  */
-@Suppress("ktlint:standard:max-line-length")
 internal val XTERM_COLORS: Array<RgbColor> = arrayOf(
     // Placeholders for indices 0-15 (use Palette for these)
     RgbColor(0u, 0u, 0u),

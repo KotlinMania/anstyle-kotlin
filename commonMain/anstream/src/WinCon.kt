@@ -2,7 +2,7 @@ use crate::adapter::WinconBytes;
 use crate::stream::AsLockedWrite;
 use crate::stream::IsTerminal;
 
-/// Only pass printable data to the inner `Write`
+/** Only pass printable data to the inner `Write` */
 #[cfg(feature = "wincon")] // here mostly for documentation purposes
 #[derive(Debug)]
 pub struct WinconStream<S>
@@ -20,7 +20,7 @@ impl<S> WinconStream<S>
 where
     S: anstyle_wincon::WinconStream,
 {
-    /// Only pass printable data to the inner `Write`
+    /** Only pass printable data to the inner `Write` */
     #[inline]
     pub fn new(raw: S) -> Self {
         Self {
@@ -29,13 +29,13 @@ where
         }
     }
 
-    /// Get the wrapped [`anstyle_wincon::WinconStream`]
+    /** Get the wrapped [`anstyle_wincon::WinconStream`] */
     #[inline]
     pub fn into_inner(self) -> S {
         self.raw
     }
 
-    /// Get the wrapped [`std::io::Write`]
+    /** Get the wrapped [`std::io::Write`] */
     #[inline]
     pub fn as_inner(&self) -> &S {
         &self.raw
@@ -47,7 +47,7 @@ where
     S: anstyle_wincon::WinconStream,
     S: IsTerminal,
 {
-    /// Returns `true` if the descriptor/handle refers to a terminal/tty.
+    /** Returns `true` if the descriptor/handle refers to a terminal/tty. */
     #[inline]
     pub fn is_terminal(&self) -> bool {
         self.raw.is_terminal()
@@ -55,11 +55,13 @@ where
 }
 
 impl WinconStream<std::io::Stdout> {
-    /// Get exclusive access to the `WinconStream`
-    ///
-    /// Why?
-    /// - Faster performance when writing in a loop
-    /// - Avoid other threads interleaving output with the current thread
+    /**
+     * Get exclusive access to the `WinconStream`
+     *
+     * Why?
+     * - Faster performance when writing in a loop
+     * - Avoid other threads interleaving output with the current thread
+     */
     #[inline]
     pub fn lock(self) -> WinconStream<std::io::StdoutLock<'static>> {
         WinconStream {
@@ -70,11 +72,13 @@ impl WinconStream<std::io::Stdout> {
 }
 
 impl WinconStream<std::io::Stderr> {
-    /// Get exclusive access to the `WinconStream`
-    ///
-    /// Why?
-    /// - Faster performance when writing in a loop
-    /// - Avoid other threads interleaving output with the current thread
+    /**
+     * Get exclusive access to the `WinconStream`
+     *
+     * Why?
+     * - Faster performance when writing in a loop
+     * - Avoid other threads interleaving output with the current thread
+     */
     #[inline]
     pub fn lock(self) -> WinconStream<std::io::StderrLock<'static>> {
         WinconStream {

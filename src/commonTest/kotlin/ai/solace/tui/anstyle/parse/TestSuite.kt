@@ -8,9 +8,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 // Rust original preserved as comments for reference
-// use std::vec::Vec;
-// use proptest::prelude::*;
-// use anstyle_parse::*;
 
 private const val MAX_PARAMS: Int = 32
 private const val MAX_OSC_RAW: Int = 1024

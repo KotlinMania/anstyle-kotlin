@@ -1,10 +1,10 @@
 //! Higher-level traits to describe writeable streams
 
-/// Required functionality for underlying [`std::io::Write`] for adaptation
+/** Required functionality for underlying [`std::io::Write`] for adaptation */
 #[cfg(not(all(windows, feature = "wincon")))]
 pub trait RawStream: std::io::Write + IsTerminal + private::Sealed {}
 
-/// Required functionality for underlying [`std::io::Write`] for adaptation
+/** Required functionality for underlying [`std::io::Write`] for adaptation */
 #[cfg(all(windows, feature = "wincon"))]
 pub trait RawStream:
     std::io::Write + IsTerminal + anstyle_wincon::WinconStream + private::Sealed
@@ -33,9 +33,9 @@ impl RawStream for std::fs::File {}
 #[allow(deprecated)]
 impl RawStream for crate::Buffer {}
 
-/// Trait to determine if a descriptor/handle refers to a terminal/tty.
+/** Trait to determine if a descriptor/handle refers to a terminal/tty. */
 pub trait IsTerminal: private::Sealed {
-    /// Returns `true` if the descriptor/handle refers to a terminal/tty.
+    /** Returns `true` if the descriptor/handle refers to a terminal/tty. */
     fn is_terminal(&self) -> bool;
 }
 
@@ -131,14 +131,14 @@ impl IsTerminal for crate::Buffer {
     }
 }
 
-/// Lock a stream
+/** Lock a stream */
 pub trait AsLockedWrite: private::Sealed {
-    /// Locked writer type
+    /** Locked writer type */
     type Write<'w>: RawStream + 'w
     where
         Self: 'w;
 
-    /// Lock a stream
+    /** Lock a stream */
     fn as_locked_write(&mut self) -> Self::Write<'_>;
 }
 

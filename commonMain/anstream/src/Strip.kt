@@ -2,7 +2,7 @@ use crate::adapter::StripBytes;
 use crate::stream::AsLockedWrite;
 use crate::stream::IsTerminal;
 
-/// Only pass printable data to the inner `Write`
+/** Only pass printable data to the inner `Write` */
 #[derive(Debug)]
 pub struct StripStream<S>
 where
@@ -16,7 +16,7 @@ impl<S> StripStream<S>
 where
     S: std::io::Write,
 {
-    /// Only pass printable data to the inner `Write`
+    /** Only pass printable data to the inner `Write` */
     #[inline]
     pub fn new(raw: S) -> Self {
         Self {
@@ -25,13 +25,13 @@ where
         }
     }
 
-    /// Get the wrapped [`std::io::Write`]
+    /** Get the wrapped [`std::io::Write`] */
     #[inline]
     pub fn into_inner(self) -> S {
         self.raw
     }
 
-    /// Get the wrapped [`std::io::Write`]
+    /** Get the wrapped [`std::io::Write`] */
     #[inline]
     pub fn as_inner(&self) -> &S {
         &self.raw
@@ -43,7 +43,7 @@ where
     S: std::io::Write,
     S: IsTerminal,
 {
-    /// Returns `true` if the descriptor/handle refers to a terminal/tty.
+    /** Returns `true` if the descriptor/handle refers to a terminal/tty. */
     #[inline]
     pub fn is_terminal(&self) -> bool {
         self.raw.is_terminal()
@@ -51,11 +51,13 @@ where
 }
 
 impl StripStream<std::io::Stdout> {
-    /// Get exclusive access to the `StripStream`
-    ///
-    /// Why?
-    /// - Faster performance when writing in a loop
-    /// - Avoid other threads interleaving output with the current thread
+    /**
+     * Get exclusive access to the `StripStream`
+     *
+     * Why?
+     * - Faster performance when writing in a loop
+     * - Avoid other threads interleaving output with the current thread
+     */
     #[inline]
     pub fn lock(self) -> StripStream<std::io::StdoutLock<'static>> {
         StripStream {
@@ -66,11 +68,13 @@ impl StripStream<std::io::Stdout> {
 }
 
 impl StripStream<std::io::Stderr> {
-    /// Get exclusive access to the `StripStream`
-    ///
-    /// Why?
-    /// - Faster performance when writing in a loop
-    /// - Avoid other threads interleaving output with the current thread
+    /**
+     * Get exclusive access to the `StripStream`
+     *
+     * Why?
+     * - Faster performance when writing in a loop
+     * - Avoid other threads interleaving output with the current thread
+     */
     #[inline]
     pub fn lock(self) -> StripStream<std::io::StderrLock<'static>> {
         StripStream {

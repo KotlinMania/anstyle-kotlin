@@ -3,13 +3,13 @@
 use anstyle::{AnsiColor, Color as AColor, Effects, Style};
 use cansi::{v3::CategorisedSlice, Color, Intensity};
 
-/// Produce a stream of [`StyledStr`] from text that contains ansi escape sequences
+/** Produce a stream of [`StyledStr`] from text that contains ansi escape sequences */
 pub(crate) fn styled_stream(text: &str) -> impl Iterator<Item = StyledStr<'_>> {
     let categorized = cansi::v3::categorise_text(text);
     categorized.into_iter().map(|x| x.into())
 }
 
-/// Represents a Section of text, along with the desired styling for it
+/** Represents a Section of text, along with the desired styling for it */
 #[derive(Debug, Default, Clone, Copy)]
 pub(crate) struct StyledStr<'text> {
     pub(crate) text: &'text str,
@@ -83,16 +83,18 @@ mod tests {
 
     use super::*;
 
-    /// Creates a [`CategorisedSlice`] for Testing
-    ///
-    /// ```rust
-    /// styled_str!(Text, [Color:COLOR_SET] [Intensity:INTENSITY_SET] [Effects:EFFECTS_SET])
-    /// ```
-    ///
-    /// Where:
-    ///     `COLOR_SET={fg|bg}:<cansi::Color>`
-    ///     `INTENSITY_SET=<cansi::Intensity>`
-    ///     `EFFECTS_SET={"underline"|"italic"|"blink"|"reversed"|"strikethrough"|"hidden"};+`
+    /**
+     * Creates a [`CategorisedSlice`] for Testing
+     *
+     * ```rust
+     * styled_str!(Text, [Color:COLOR_SET] [Intensity:INTENSITY_SET] [Effects:EFFECTS_SET])
+     * ```
+     *
+     * Where:
+     * `COLOR_SET={fg|bg}:<cansi::Color>`
+     * `INTENSITY_SET=<cansi::Intensity>`
+     * `EFFECTS_SET={"underline"|"italic"|"blink"|"reversed"|"strikethrough"|"hidden"};+`
+     */
     macro_rules! styled_str {
         ($text: literal, $(Color:$color_key:literal:$color_val:expr;)* $(Intensity:$intensity:expr;)? $(Effects:$($key:literal;)+)? ) => {
             {

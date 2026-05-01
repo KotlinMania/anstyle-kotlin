@@ -1,6 +1,6 @@
 //! Low-level ANSI-styling
 
-/// Write ANSI colored text to the stream
+/** Write ANSI colored text to the stream */
 pub fn write_colored<S: std::io::Write + ?Sized>(
     stream: &mut S,
     fg: Option<anstyle::AnsiColor>,

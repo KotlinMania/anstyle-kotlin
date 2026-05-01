@@ -32,7 +32,7 @@ class Parser<C : CharAccumulator>(
     /**
      * Create a new Parser with default ASCII parser.
      */
-    constructor() : this(@Suppress("UNCHECKED_CAST") (AsciiParser() as C))
+    constructor() : this((AsciiParser() as C))
 
     /**
      * Get the current parameters.

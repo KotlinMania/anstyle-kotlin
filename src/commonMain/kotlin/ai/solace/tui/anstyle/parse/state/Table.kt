@@ -1,8 +1,6 @@
 package ai.solace.tui.anstyle.parse.state
 
 // This file is @generated - converted from crates/anstyle-parse/src/state/table.rs
-
-@Suppress("ktlint:standard:max-line-length")
 internal val STATE_CHANGES: Array<UByteArray> = arrayOf(
     // Anywhere
     ubyteArrayOf(
