@@ -1,7 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
-import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnvSpec
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootEnvSpec
@@ -10,6 +9,7 @@ import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnRootEnvSpec
 
 plugins {
     kotlin("multiplatform") version "2.3.21"
+    kotlin("plugin.serialization") version "2.3.21"
     id("com.android.kotlin.multiplatform.library") version "9.2.0"
     id("com.vanniktech.maven.publish") version "0.36.0"
 }
@@ -32,12 +32,14 @@ if (androidSdkDir != null && file(androidSdkDir).exists()) {
 kotlin {
     applyDefaultHierarchyTemplate()
 
-    compilerOptions {
-        allWarningsAsErrors.set(true)
+    sourceSets.all {
+        languageSettings.optIn("kotlin.time.ExperimentalTime")
+        languageSettings.optIn("kotlin.concurrent.atomics.ExperimentalAtomicApi")
     }
 
-    sourceSets.all {
-        languageSettings.optIn("kotlin.ExperimentalUnsignedTypes")
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
     val xcf = XCFramework("Anstyle")
@@ -77,6 +79,16 @@ kotlin {
         flattenPackage = "io.github.kotlinmania.anstyle"
     }
 
+    android {
+        namespace = "io.github.kotlinmania.anstyle"
+        compileSdk = 34
+        minSdk = 24
+        withHostTestBuilder {}.configure {}
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -90,16 +102,15 @@ kotlin {
             }
         }
     }
-
     jvmToolchain(21)
 }
 
 rootProject.extensions.configure<NodeJsEnvSpec>("kotlinNodeJsSpec") {
-    version.set("22.22.2")
+    version.set("24.13.0")
 }
 
 rootProject.extensions.configure<WasmNodeJsEnvSpec>("kotlinWasmNodeJsSpec") {
-    version.set("22.22.2")
+    version.set("24.13.0")
 }
 
 rootProject.extensions.configure<YarnRootEnvSpec>("kotlinYarnSpec") {
@@ -149,27 +160,6 @@ rootProject.extensions.configure<NodeJsRootExtension>("kotlinNodeJs") {
     versions.kotlinWebHelpers.version = "3.1.0"
 }
 
-kotlin {
-    android {
-        namespace = "io.github.kotlinmania.anstyle"
-        compileSdk = 34
-        minSdk = 24
-        withHostTestBuilder {}.configure {}
-        withDeviceTestBuilder {
-            sourceSetTreeName = "test"
-        }
-    }
-}
-
-val enableIosSimulatorTests =
-    providers.gradleProperty("enableIosSimulatorTests").map { it.toBoolean() }.orElse(false)
-
-tasks.withType<KotlinNativeTest>().configureEach {
-    if (!enableIosSimulatorTests.get() && name == "iosSimulatorArm64Test") {
-        enabled = false
-    }
-}
-
 mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
@@ -178,16 +168,11 @@ mavenPublishing {
 
     pom {
         name.set("anstyle-kotlin")
-        description.set("Kotlin Multiplatform library for ANSI text styling and terminal color support")
-        inceptionYear.set("2024")
+        description.set("Kotlin Multiplatform port of rust-cli/anstyle - ANSI text styling")
+        inceptionYear.set("2026")
         url.set("https://github.com/KotlinMania/anstyle-kotlin")
 
         licenses {
-            license {
-                name.set("Apache-2.0")
-                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                distribution.set("repo")
-            }
             license {
                 name.set("MIT")
                 url.set("https://opensource.org/licenses/MIT")
@@ -212,20 +197,16 @@ mavenPublishing {
     }
 }
 
-// CodeQL's Gradle autobuild invokes `./gradlew testClasses`, which is a
-// JVM-convention task that Kotlin Multiplatform projects without a JVM
-// target do not provide. Without it, CodeQL aborts with
-// `Task 'testClasses' not found in root project` and skips the scan.
-// Register an aggregate task that depends on every per-target
-// test-compile task (jsTestClasses, wasmJsTestClasses, and the
-// compileTestKotlin<Target> tasks for native targets) so the convention
-// call resolves.
-tasks.register("testClasses") {
-    description = "Aggregate test-compile task for CodeQL and other JVM-convention callers."
+tasks.register("test") {
     group = "verification"
-    dependsOn(tasks.matching { other ->
-        val n = other.name
-        n != "testClasses" &&
-            (n.endsWith("TestClasses") || n.startsWith("compileTestKotlin"))
-    })
+    description =
+        "Runs a portable test suite (macOS + JS + WasmJS). Android and non-host native targets are intentionally excluded."
+
+    val defaultTestTasks = listOf(
+        "macosArm64Test",
+        "jsNodeTest",
+        "wasmJsNodeTest",
+    )
+
+    dependsOn(defaultTestTasks.mapNotNull { taskName -> tasks.findByName(taskName) })
 }

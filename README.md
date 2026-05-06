@@ -1,100 +1,85 @@
-# anstyle-kotlin
+# anstyle-kotlin in Kotlin
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-blue.svg?logo=kotlin)](https://kotlinlang.org)
-[![License](https://img.shields.io/badge/license-Apache--2.0%2FMIT-blue.svg)](#license)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.kotlinmania/anstyle-kotlin?color=blue)](https://central.sonatype.com/artifact/io.github.kotlinmania/anstyle-kotlin)
-[![GitHub](https://img.shields.io/badge/github-KotlinMania%2Fanstyle--kotlin-blue?logo=github)](https://github.com/KotlinMania/anstyle-kotlin)
+[![GitHub link](https://img.shields.io/badge/GitHub-KotlinMania%2Fanstyle--kotlin-blue.svg)](https://github.com/KotlinMania/anstyle-kotlin)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.kotlinmania/anstyle-kotlin)](https://central.sonatype.com/artifact/io.github.kotlinmania/anstyle-kotlin)
+[![Build status](https://img.shields.io/github/actions/workflow/status/KotlinMania/anstyle-kotlin/ci.yml?branch=main)](https://github.com/KotlinMania/anstyle-kotlin/actions)
 
-A **Kotlin Multiplatform** library for ANSI text styling and terminal color support. This is a port
-of the Rust [anstyle](https://github.com/rust-cli/anstyle) family of crates.
+This is a Kotlin Multiplatform line-by-line transliteration port of [`rust-cli/anstyle`](https://github.com/rust-cli/anstyle.git).
 
-## Overview
+**Original Project:** This port is based on [`rust-cli/anstyle`](https://github.com/rust-cli/anstyle.git). All design credit and project intent belong to the upstream authors; this repository is a faithful port to Kotlin Multiplatform with no behavioural changes intended.
 
-anstyle-kotlin provides utilities for rendering styled text to terminals with support for various
-color models and terminal capabilities. The library ports multiple related crates from the original
-Rust ecosystem:
+### Porting status
 
-- **anstyle** - Core ANSI text styling definitions
-- **anstream** - IO stream adapters for colored text output
-- **anstyle-parse** - ANSI style escape sequence parser
-- **anstyle-query** - Terminal capability detection
-- **anstyle-roff** - ANSI to ROFF format converter
-- **anstyle-svg** - ANSI to SVG format converter
-- **anstyle-wincon** - Windows console styling
-- **anstyle-lossy** - Color type conversions
-- **colorchoice** - Color output control
-
-## Supported Platforms
-
-- macOS (arm64, x64)
-- iOS (arm64, x64, simulatorArm64)
-- Linux (x64)
-- Windows (x64 via MinGW)
-- JavaScript (Browser, Node.js)
-- WebAssembly (Browser, Node.js)
-- Android (API 24+)
-
-## Installation
-
-### Gradle (Kotlin DSL)
-
-```kotlin
-dependencies {
-    implementation("io.github.kotlinmania:anstyle-kotlin:0.1.3")
-}
-```
-
-### As a Git Submodule
-
-```bash
-git submodule add https://github.com/KotlinMania/anstyle-kotlin.git
-```
-
-Then in your `settings.gradle.kts`:
-
-```kotlin
-include(":anstyle-kotlin")
-```
-
-And in your module's `build.gradle.kts`:
-
-```kotlin
-kotlin {
-    sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(project(":anstyle-kotlin"))
-            }
-        }
-    }
-}
-```
-
-## Building from Source
-
-```bash
-git clone https://github.com/KotlinMania/anstyle-kotlin.git
-cd anstyle-kotlin
-./gradlew assemble
-./gradlew allTests
-```
-
-## License
-
-Licensed under either of:
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](./LICENSE-APACHE))
-- MIT license ([LICENSE-MIT](./LICENSE-MIT))
-
-at your option.
+This is an **in-progress port**. The goal is feature parity with the upstream Rust crate while providing a native Kotlin Multiplatform API. Every Kotlin file carries a `// port-lint: source <path>` header naming its upstream Rust counterpart so the AST-distance tool can track provenance.
 
 ---
 
-## Acknowledgments
+## Upstream README — `rust-cli/anstyle`
 
-This Kotlin Multiplatform port was created by **Sydney Renee** of [The Solace Project](mailto:sydney@solace.ofharmony.ai)
-for [KotlinMania](https://github.com/KotlinMania).
+> The text below is reproduced and lightly edited from [`https://github.com/rust-cli/anstyle.git`](https://github.com/rust-cli/anstyle.git). It is the upstream project's own description and remains under the upstream authors' authorship; links have been rewritten to absolute upstream URLs so they continue to resolve from this repository.
 
-Special thanks to the original authors:
+This repo contains:
+- [`anstream`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstream) for a simple cross platform library for writing colored text to a terminal
+- [`anstyle`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle) for style definitions
+- User-styling parsers
+  - [`anstyle-git`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-git) for parsing `git` style descriptions
+  - [`anstyle-ls`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-ls) for parsing `LS_COLORS` style descriptions
+- Convert to other formats
+  - [`anstyle-roff`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-roff) for converting ANSI codes to `ROFF`
+  - [`anstyle-svg`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-svg) for converting ANSI codes to `SVG`
+- Styling integration
+  - [`anstyle-ansi-term`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-ansi-term) for adapting `anstyle` to `ansi_term`
+  - [`anstyle-crossterm`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-crossterm) for adapting `anstyle` to `crossterm`
+  - [`anstyle-owo-colors`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-owo-colors) for adapting `anstyle` to `owo-colors`
+  - [`anstyle-syntect`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-syntect) for adapting `anstyle` to `syntect`
+  - [`anstyle-termcolor`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-termcolor) for adapting `anstyle` to `termcolor`
+  - [`anstyle-yansi`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-yansi) for adapting `anstyle` to `yansi`
+- Utilities
+  - [`anstyle-lossy`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-lossy) for converting between color types
+  - [`anstyle-parse`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-parse) for parsing ANSI Style Escapes
+  - [`anstyle-wincon`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/anstyle-wincon) for styling legacy Microsoft terminals
+  - [`colorchoice-clap`](https://github.com/rust-cli/anstyle/blob/HEAD/crates/colorchoice-clap) for using `color` flag in `clap`
 
-- The [rust-cli](https://github.com/rust-cli) team for the original [anstyle](https://github.com/rust-cli/anstyle) Rust implementation
+---
+
+## About this Kotlin port
+
+### Installation
+
+```kotlin
+dependencies {
+    implementation("io.github.kotlinmania:anstyle-kotlin:0.1.4")
+}
+```
+
+### Building
+
+```bash
+./gradlew build
+./gradlew test
+```
+
+### Targets
+
+- macOS arm64
+- Linux x64
+- Windows mingw-x64
+- iOS arm64 / simulator-arm64 (Swift export + XCFramework)
+- JS (browser + Node.js)
+- Wasm-JS (browser + Node.js)
+- Android (API 24+)
+
+### Porting guidelines
+
+See [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md) for translator discipline, port-lint header convention, and Rust → Kotlin idiom mapping.
+
+### License
+
+This Kotlin port is distributed under the same MIT license as the upstream [`rust-cli/anstyle`](https://github.com/rust-cli/anstyle.git). See [LICENSE](LICENSE) (and any sibling `LICENSE-*` / `NOTICE` files mirrored from upstream) for the full text.
+
+Original work copyrighted by the anstyle authors.  
+Kotlin port: Copyright (c) 2026 Sydney Renee and The Solace Project.
+
+### Acknowledgments
+
+Thanks to the [`rust-cli/anstyle`](https://github.com/rust-cli/anstyle.git) maintainers and contributors for the original Rust implementation. This port reproduces their work in Kotlin Multiplatform; bug reports about upstream design or behavior should go to the upstream repository.
