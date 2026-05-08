@@ -30,11 +30,6 @@ class Parser<C : CharAccumulator>(
     private var ignoring: Boolean = false
 
     /**
-     * Create a new Parser with default ASCII parser.
-     */
-    constructor() : this(@Suppress("UNCHECKED_CAST") (AsciiParser() as C))
-
-    /**
      * Get the current parameters.
      */
     fun params(): Params = params

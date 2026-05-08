@@ -58,7 +58,7 @@ class Log : Perform {
  * Parse the given byte array and log all ANSI sequences found
  */
 fun parseAndLog(input: ByteArray) {
-    val parser = Parser<AsciiParser>()
+    val parser = Parser(AsciiParser())
     val performer = Log()
 
     for (byte in input) {
@@ -80,7 +80,7 @@ fun parseAndLog(input: String) {
  *   echo -e "\x1b[31mHello\x1b[0m" | parselog
  */
 fun main() {
-    val statemachine = Parser<AsciiParser>()
+    val statemachine = Parser(AsciiParser())
     val performer = Log()
 
     while (true) {
