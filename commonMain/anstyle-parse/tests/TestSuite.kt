@@ -110,7 +110,7 @@ private fun start(): Dispatcher = Dispatcher()
 
 private fun runTest(input: UByteArray, expected: Dispatcher) {
     val dispatcher = Dispatcher()
-    val parser = Parser<AsciiParser>()
+    val parser = Parser(AsciiParser())
 
     for (byte in input) {
         parser.advance(dispatcher, byte)

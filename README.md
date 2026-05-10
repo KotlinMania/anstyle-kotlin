@@ -75,7 +75,12 @@ See [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md) for translator discipline,
 
 ### License
 
-This Kotlin port is distributed under the same MIT license as the upstream [`rust-cli/anstyle`](https://github.com/rust-cli/anstyle.git). See [LICENSE](LICENSE) (and any sibling `LICENSE-*` / `NOTICE` files mirrored from upstream) for the full text.
+Licensed under either of:
+
+- Apache License, Version 2.0 (`LICENSE-APACHE`)
+- MIT license (`LICENSE-MIT`)
+
+at your option.
 
 Original work copyrighted by the anstyle authors.  
 Kotlin port: Copyright (c) 2026 Sydney Renee and The Solace Project.

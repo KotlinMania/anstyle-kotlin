@@ -181,7 +181,7 @@ fun benchAdvance(data: BenchData, iterations: Int = 1000): Long {
     val duration = measureTime {
         repeat(iterations) {
             val dispatcher = BenchDispatcher()
-            val parser = Parser<AsciiParser>()
+            val parser = Parser(AsciiParser())
             for (byte in data.content) {
                 parser.advance(dispatcher, byte.toUByte())
             }
@@ -197,7 +197,7 @@ fun benchAdvanceStrip(data: BenchData, iterations: Int = 1000): Long {
     val duration = measureTime {
         repeat(iterations) {
             val stripped = Strip(data.content.size)
-            val parser = Parser<AsciiParser>()
+            val parser = Parser(AsciiParser())
             for (byte in data.content) {
                 parser.advance(stripped, byte.toUByte())
             }
@@ -230,7 +230,7 @@ fun verifyData(benchData: List<BenchData>) {
         val content = data.content.decodeToString()
 
         val stripped = Strip(content.length)
-        val parser = Parser<AsciiParser>()
+        val parser = Parser(AsciiParser())
         for (byte in content.encodeToByteArray()) {
             parser.advance(stripped, byte.toUByte())
         }
