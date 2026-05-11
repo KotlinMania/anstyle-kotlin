@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUnsignedTypes::class)
+
 package ai.solace.tui.anstyle.parse
 
 /**
@@ -154,4 +156,3 @@ class ParamsIter(private val params: Params) : Iterator<List<UShort>> {
         return param
     }
 }
-
