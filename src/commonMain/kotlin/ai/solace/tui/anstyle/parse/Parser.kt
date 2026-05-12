@@ -4,15 +4,6 @@ import ai.solace.tui.anstyle.parse.state.Action
 import ai.solace.tui.anstyle.parse.state.State
 import ai.solace.tui.anstyle.parse.state.stateChange
 
-inline fun <reified C : CharAccumulator> Parser(): Parser<C> {
-    val accumulator = when (C::class) {
-        AsciiParser::class -> AsciiParser()
-        Utf8Parser::class -> Utf8Parser()
-        else -> error("No default CharAccumulator for ${C::class}")
-    }
-    return Parser(accumulator as C)
-}
-
 /**
  * Parser for implementing virtual terminal emulators.
  *
