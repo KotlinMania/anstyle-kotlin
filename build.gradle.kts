@@ -162,10 +162,8 @@ kotlin {
 
     sourceSets {
         val commonMain by getting {
-            dependencies {
-                implementation("io.github.kotlinmania:roff-kotlin:0.1.4")
-                implementation("io.github.kotlinmania:cansi-kotlin:0.1.4")
-            }
+            // No external dependencies: keep commonMain compatible with every
+            // target declared in this project.
         }
         val commonTest by getting {
             dependencies {
@@ -266,8 +264,6 @@ dependencies {
     // Mirror the commonMain dependency set, pinned to the JVM artifact variant
     // since the JVM-flavoured kotlinx packages publish multiplatform metadata.
     codeqlSourceClasspath("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
-    codeqlSourceClasspath("io.github.kotlinmania:roff-kotlin:0.1.4")
-    codeqlSourceClasspath("io.github.kotlinmania:cansi-kotlin:0.1.4")
 }
 
 val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
