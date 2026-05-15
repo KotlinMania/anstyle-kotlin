@@ -161,7 +161,12 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain by getting
+        val commonMain by getting {
+            dependencies {
+                implementation("io.github.kotlinmania:roff-kotlin:0.1.4")
+                implementation("io.github.kotlinmania:cansi-kotlin:0.1.4")
+            }
+        }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
@@ -258,8 +263,11 @@ val codeqlSourceClasspath: Configuration by configurations.creating {
 
 dependencies {
     codeqlKotlinc("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.21")
-    // Mirror the commonMain dependency set.
+    // Mirror the commonMain dependency set, pinned to the JVM artifact variant
+    // since the JVM-flavoured kotlinx packages publish multiplatform metadata.
     codeqlSourceClasspath("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
+    codeqlSourceClasspath("io.github.kotlinmania:roff-kotlin:0.1.4")
+    codeqlSourceClasspath("io.github.kotlinmania:cansi-kotlin:0.1.4")
 }
 
 val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
@@ -310,7 +318,6 @@ val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
             "-api-version", "2.3",
             "-opt-in", "kotlin.time.ExperimentalTime",
             "-opt-in", "kotlin.concurrent.atomics.ExperimentalAtomicApi",
-            "-opt-in", "kotlin.ExperimentalUnsignedTypes",
             "-Xexpect-actual-classes",
         ) + sourceFiles.map { it.absolutePath }
     }
