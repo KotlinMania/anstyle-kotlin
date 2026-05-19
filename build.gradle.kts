@@ -1,8 +1,10 @@
-import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.ClasspathNormalizer
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
@@ -21,17 +23,16 @@ plugins {
 
 group = "io.github.kotlinmania"
 version = "0.1.4"
-val androidSdkDir: String? =
-    providers.environmentVariable("ANDROID_SDK_ROOT").orNull
-        ?: providers.environmentVariable("ANDROID_HOME").orNull
 
-if (androidSdkDir != null && file(androidSdkDir).exists()) {
-    val localProperties = rootProject.file("local.properties")
-    if (!localProperties.exists()) {
-        val sdkDirPropertyValue = file(androidSdkDir).absolutePath.replace("\\", "/")
-        localProperties.writeText("sdk.dir=$sdkDirPropertyValue")
-    }
-}
+// The Android Gradle plugin resolves the SDK location while Gradle builds the
+// task graph — before any task executes — so a project-local Android SDK must
+// already be installed by the time configuration runs. setup-android-sdk.sh
+// installs the SDK into this repo's own .android-sdk/ and writes
+// local.properties to point there. It runs unconditionally on every
+// configuration: the script itself is idempotent (an already-installed SDK is
+// a fast no-op), but there is deliberately no Gradle-side condition that could
+// skip the install, and no fallback to a sibling repo's SDK.
+serviceOf<ExecOperations>().exec { commandLine("bash", "./setup-android-sdk.sh") }
 
 kotlin {
     applyDefaultHierarchyTemplate()
@@ -49,88 +50,48 @@ kotlin {
 
     val xcf = XCFramework("Anstyle")
 
-    // Apple desktop
     macosArm64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
-
-    // iOS
     iosArm64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
     iosSimulatorArm64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
     iosX64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
 
-    // tvOS
     tvosArm64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
     tvosSimulatorArm64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
 
-    // watchOS
     watchosArm32 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
     watchosArm64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
     watchosDeviceArm64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
     watchosSimulatorArm64 {
-        binaries.framework {
-            baseName = "Anstyle"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Anstyle"; xcf.add(this) }
     }
 
-    // Linux
     linuxX64()
     linuxArm64()
-
-    // Windows
     mingwX64()
 
-    // Android native
     androidNativeArm32()
     androidNativeArm64()
     androidNativeX86()
     androidNativeX64()
 
-    // JS
     js {
         browser()
         nodejs()
@@ -160,16 +121,20 @@ kotlin {
         }
     }
 
+    jvm()
+
     sourceSets {
         val commonMain by getting {
-            // No external dependencies: keep commonMain compatible with every
-            // target declared in this project.
+            dependencies {
+
+            }
         }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
             }
         }
+
     }
     jvmToolchain(21)
 }
@@ -211,6 +176,8 @@ rootProject.extensions.configure<WasmYarnRootEnvSpec>("kotlinWasmYarnSpec") {
 rootProject.extensions.configure<YarnRootExtension>("kotlinYarn") {
     resolution("diff", "8.0.3")
     resolution("**/diff", "8.0.3")
+    resolution("fast-uri", "3.1.1")
+    resolution("**/fast-uri", "3.1.1")
     resolution("serialize-javascript", "7.0.5")
     resolution("**/serialize-javascript", "7.0.5")
     resolution("webpack", "5.106.2")
@@ -247,78 +214,6 @@ rootProject.extensions.configure<NodeJsRootExtension>("kotlinNodeJs") {
     versions.kotlinWebHelpers.version = "3.1.0"
 }
 
-val codeqlKotlinc: Configuration by configurations.creating {
-    description = "Kotlin compiler (CodeQL extraction target only — not published)"
-    isCanBeResolved = true
-    isCanBeConsumed = false
-}
-
-val codeqlSourceClasspath: Configuration by configurations.creating {
-    description = "Runtime classpath for CodeQL extraction of commonMain sources"
-    isCanBeResolved = true
-    isCanBeConsumed = false
-}
-
-dependencies {
-    codeqlKotlinc("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.21")
-    // Mirror the commonMain dependency set, pinned to the JVM artifact variant
-    // since the JVM-flavoured kotlinx packages publish multiplatform metadata.
-    codeqlSourceClasspath("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
-}
-
-val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
-    description =
-        "Compile commonMain Kotlin sources with kotlinc for CodeQL Java/Kotlin extraction. " +
-            "Not part of any published artifact."
-    group = "verification"
-
-    classpath(codeqlKotlinc)
-    mainClass.set("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
-
-    val outDir = layout.buildDirectory.dir("classes/kotlin/codeql-jvm")
-    val sources = fileTree("src/commonMain/kotlin") { include("**/*.kt") }
-    val sentinelDir = layout.buildDirectory.dir("generated/codeql-empty-source")
-    inputs.files(sources).withPathSensitivity(PathSensitivity.RELATIVE)
-    inputs.files(codeqlSourceClasspath).withNormalizer(ClasspathNormalizer::class.java)
-    outputs.dir(outDir)
-    outputs.dir(sentinelDir)
-
-    doFirst {
-        outDir.get().asFile.mkdirs()
-        val sourceFiles = sources.files.toMutableList()
-        if (sourceFiles.isEmpty()) {
-            val sentinelFile = sentinelDir.get().asFile.resolve(
-                "io/github/kotlinmania/codeql/_CodeqlEmptySource.kt",
-            )
-            sentinelFile.parentFile.mkdirs()
-            sentinelFile.writeText(
-                """
-                // Auto-generated. Present so codeqlCompileJvm has at least
-                // one Kotlin source to feed kotlinc; replaced by real
-                // commonMain content once porting begins.
-                package io.github.kotlinmania.codeql
-
-                private object _CodeqlEmptySource
-
-                """.trimIndent(),
-            )
-            sourceFiles += sentinelFile
-        }
-        args = listOf(
-            "-d", outDir.get().asFile.absolutePath,
-            "-classpath", codeqlSourceClasspath.asPath,
-            "-jvm-target", "21",
-            "-no-stdlib",
-            "-no-reflect",
-            "-language-version", "2.3",
-            "-api-version", "2.3",
-            "-opt-in", "kotlin.time.ExperimentalTime",
-            "-opt-in", "kotlin.concurrent.atomics.ExperimentalAtomicApi",
-            "-Xexpect-actual-classes",
-        ) + sourceFiles.map { it.absolutePath }
-    }
-}
-
 mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
@@ -335,11 +230,6 @@ mavenPublishing {
             license {
                 name.set("Apache-2.0")
                 url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                distribution.set("repo")
-            }
-            license {
-                name.set("MIT")
-                url.set("https://opensource.org/licenses/MIT")
                 distribution.set("repo")
             }
         }
@@ -361,14 +251,21 @@ mavenPublishing {
     }
 }
 
+tasks.register<Exec>("setupAndroidSdk") {
+    group = "setup"
+    description = "Downloads and configures the project-local Android SDK."
+    commandLine("./setup-android-sdk.sh")
+}
+
 tasks.register("test") {
     group = "verification"
     description =
         "Runs the host-portable test suite (macOS + JS + WasmJS + Android unit). " +
-            "Non-host native targets (mingwX64, linuxX64) only run on their own host."
+        "Non-host native targets (mingwX64, linuxX64) only run on their own host."
 
     val defaultTestTasks = listOf(
         "macosArm64Test",
+        "jvmTest",
         "jsNodeTest",
         "wasmJsNodeTest",
         "compileAndroidMain",
@@ -376,4 +273,38 @@ tasks.register("test") {
     )
 
     dependsOn(defaultTestTasks.mapNotNull { taskName -> tasks.findByName(taskName) })
+}
+
+// The generated Wasm-WASI Node test runner cannot see the filesystem unless
+// the project directory is preopened. Patch the runner before wasmWasiNodeTest.
+val patchWasmWasiNodePreopens = tasks.register("patchWasmWasiNodePreopens") {
+    description = "Preopen the project directory for the generated Wasm-WASI Node test runner."
+    group = "verification"
+    dependsOn("compileTestDevelopmentExecutableKotlinWasmWasi")
+    outputs.upToDateWhen { false }
+
+    doLast {
+        val runnerFile = layout.buildDirectory.file(
+            "compileSync/wasmWasi/test/testDevelopmentExecutable/kotlin/${rootProject.name}-test.mjs",
+        ).get().asFile
+        if (!runnerFile.exists()) {
+            // No Wasm-WASI test runner was generated (the repo has no
+            // wasmWasi test sources), so there is nothing to preopen.
+            return@doLast
+        }
+        val text = runnerFile.readText()
+        val withCwdImport = text.replace(
+            "import { argv, env } from 'node:process';",
+            "import { argv, env, cwd } from 'node:process';",
+        )
+        val patched = withCwdImport.replace(
+            "const wasi = new WASI({ version: 'preview1', args: argv, env, });",
+            "const wasi = new WASI({ version: 'preview1', args: argv, env, preopens: { '/': cwd() }, });",
+        )
+        runnerFile.writeText(patched)
+    }
+}
+
+tasks.named("wasmWasiNodeTest") {
+    dependsOn(patchWasmWasiNodePreopens)
 }
