@@ -1,3 +1,4 @@
+// port-lint: source color.rs
 package ai.solace.tui.anstyle
 
 /**

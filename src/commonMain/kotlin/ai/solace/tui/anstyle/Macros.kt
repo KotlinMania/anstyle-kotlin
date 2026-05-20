@@ -1,3 +1,4 @@
+// port-lint: source macros.rs
 package ai.solace.tui.anstyle
 
 // The escape! macro from Rust is converted to a function in Color.kt:
