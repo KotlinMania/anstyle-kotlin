@@ -496,22 +496,35 @@ All seven are filable upstream against the Kotlin Multiplatform plugin
 build pipeline). When they're fixed, the workarounds in this recipe
 become deletable.
 
-8. **The Kotlin Swift Export bridge file casts `Any?` to generic public
-   types under `allWarningsAsErrors=true`.** When public Kotlin APIs
-   include unconstrained generic classes (e.g. `WithPosition<T>`,
-   `ZipEq<L, R>`), the plugin-generated bridge at
-   `build/SwiftExport/<target>/<config>/files/<Module>/<Module>.kt`
-   contains unchecked casts of the form
-   `dereferenceExternalRCRef(self) as io.github.kotlinmania.<pkg>.WithPosition<kotlin.Any?>`.
-   Under the workspace-canonical `allWarningsAsErrors.set(true)` these
-   become compile errors and `compileSwiftExportMainKotlin<Target>`
-   fails. Same shape as gap #3 but for generic public types rather
-   than `kotlin.Result`. The flat-class workaround in [§ Recipe for
-   replacing `kotlin.Result<T>` in a public API](#recipe-for-replacing-kotlinresultt-in-a-public-api)
-   does NOT apply — these are upstream iterator/wrapper types that
-   cannot be flattened without unfaithful translation.
+8. **The Kotlin Swift Export bridge file casts `Any` / `Any?` to typed
+   Kotlin values under `allWarningsAsErrors=true`.** The plugin-generated
+   bridge at `build/SwiftExport/<target>/<config>/files/<Module>/<Module>.kt`
+   pushes every typed Kotlin value through an untyped `Any` channel
+   and then casts back to the concrete type on the way out. Under the
+   workspace-canonical `allWarningsAsErrors.set(true)` every such cast
+   trips `Unchecked cast` and `compileSwiftExportMainKotlin<Target>`
+   fails. There are **two distinct API shapes** that provoke this; the
+   bridge file looks similar in both cases but the source-side fix is
+   different.
 
-   **Per-repo fix**: stop exposing the unconstrained generic classes.
+   **Trigger 8a — unconstrained generic public classes.** When a
+   public Kotlin API exposes a generic class whose type parameter is
+   unconstrained (`WithPosition<T>`, `ZipEq<L, R>`, `Unfold<St, T>`,
+   etc.), the plugin erases `T` to `kotlin.Any?` in the bridge and
+   emits:
+
+   ```kotlin
+   val ____self = dereferenceExternalRCRef(self) as io.github.kotlinmania.<pkg>.ZipEq<kotlin.Any?, kotlin.Any?>
+   // w: Unchecked cast: 'Any?' to 'ZipEq<Any?, Any?>'.
+   ```
+
+   Same shape as gap #3 but for generic public types rather than
+   `kotlin.Result`. The flat-class workaround in [§ Recipe for replacing
+   `kotlin.Result<T>` in a public API](#recipe-for-replacing-kotlinresultt-in-a-public-api)
+   does NOT apply — these are iterator/wrapper types that cannot be
+   flattened without unfaithful translation.
+
+   *Per-repo fix:* stop exposing the unconstrained generic classes.
    Swift Export only emits bridge code for symbols visible in the
    public API surface — internal types are skipped, so no
    `as <UserClass><Any?>` cast gets generated for them. The pattern
@@ -532,22 +545,92 @@ become deletable.
      etc.) keep working by constructing the internal class directly.
      Iteration-shape assertions can continue to use the public
      factory.
-   - **DO NOT** scope `allWarningsAsErrors=false` to the
-     `compileSwiftExportMain*` task family. That was tried first
-     (itertools-kotlin PR #22) and is symptom suppression: it leaves
-     the unchecked `Any?` casts in the bridge and only mutes the
-     compiler. The `tasks.matching { ... }.withType<KotlinCompilationTask<*>>()`
-     block (and any `KotlinCompilationTask` import that accompanies
-     it) should be deleted whenever found.
 
-   With the internal-class fix, `allWarningsAsErrors=true` applies
+   **Trigger 8b — Kotlin function types in public API positions.** A
+   public field, parameter, or return type of `() -> R` / `(A) -> R` /
+   `(A, B) -> R` triggers the same `Unchecked cast` shape, even when
+   the *enclosing* class has no generic parameter. The Kotlin source
+   has no `<T>` in sight, but Kotlin function types compile to
+   `Function0<R>` / `Function1<A, R>` / ... under the hood — same
+   erasure surface, same untyped bridge channel. The bridge emits:
+
+   ```kotlin
+   val ____self = dereferenceExternalRCRef(self) as kotlin.Function0<kotlin.Long>
+   // w: Unchecked cast of 'Any' to '() -> Long'.
+   ```
+
+   Live in-the-wild example from tree-sitter-language-kotlin CI on
+   2026-05-23 (`compileSwiftExportMainKotlinMacosArm64` failed on
+   `build/SwiftExport/macosArm64/Debug/files/TreeSitterLanguage/TreeSitterLanguage.kt:12:37`
+   with `Unchecked cast of 'Any' to '() -> Long'.`):
+
+   ```kotlin
+   // Source (Language.kt) — no visible generic, but () -> Long erases
+   class LanguageFn private constructor(private val raw: () -> Long) {
+       companion object { fun fromRaw(f: () -> Long): LanguageFn = LanguageFn(f) }
+       fun intoRaw(): () -> Long = raw
+   }
+   ```
+
+   *Per-repo fix:* replace the public function-type with a named
+   `fun interface` (single-abstract-method interface). SAM conversion
+   lets every existing lambda call site stay unchanged
+   (`LanguageFn.fromRaw { 42L }` still compiles), but the bridge sees a
+   stable nominal type instead of an erased `FunctionN<...>`. The
+   pattern:
+
+   ```kotlin
+   // Named SAM interface — bridge-friendly, lambda-friendly
+   fun interface LanguageProvider {
+       fun call(): Long
+   }
+
+   class LanguageFn private constructor(private val raw: LanguageProvider) {
+       companion object {
+           fun fromRaw(f: LanguageProvider): LanguageFn = LanguageFn(f)
+       }
+       fun intoRaw(): LanguageProvider = raw
+   }
+   ```
+
+   `fun interface` is the right knob — not a plain `interface` (loses
+   SAM conversion at call sites) and not `Function0<Long>` (same
+   erasure problem in the bridge). If the function-type value is
+   internal-only, marking the field `internal` is also valid.
+
+   **DO NOT** scope `allWarningsAsErrors=false` to the
+   `compileSwiftExportMain*` task family for either trigger. That was
+   tried first (itertools-kotlin PR #22 for trigger 8a) and is symptom
+   suppression: it leaves the unchecked casts in the bridge and only
+   mutes the compiler. The `tasks.matching { ... }.withType<KotlinCompilationTask<*>>()`
+   block (and any `KotlinCompilationTask` import that accompanies it)
+   should be deleted whenever found.
+
+   With either fix in place, `allWarningsAsErrors=true` applies
    uniformly. The bridge surface shrinks accordingly — in itertools-kotlin
    it went from ~20 `@ExportedBridge` functions and 12 generic
    `@file:BindClassToObjCName(... :: class, ...)` annotations down to
    6 `@ExportedBridge` functions and zero generic class bindings,
    leaving only the genuinely-public concrete types (e.g. `Position`)
    bridged to Swift. itertools-kotlin commit `40513a5` is the canonical
-   reference.
+   reference for trigger 8a; tree-sitter-language-kotlin (the
+   `LanguageFn` / `LanguageProvider` rewrite) is the canonical reference
+   for trigger 8b.
+
+   *Audit grep (run once per repo after a fresh `embedSwiftExportForXcode`):*
+
+   ```sh
+   # Combined audit — both triggers, both shapes the bridge writes
+   grep -nE "as kotlin\\.Function[0-9]+<|as io\\.github\\.kotlinmania\\.[^<]+<kotlin\\.Any" \
+       build/SwiftExport/macosArm64/Debug/files/*/*.kt
+   ```
+
+   Every match in a `kotlin.FunctionN<...>` is trigger 8b (function
+   type in public surface); every match in
+   `io.github.kotlinmania.<pkg>.<Type><kotlin.Any` is trigger 8a
+   (unconstrained generic). Both are fixable per-repo via the
+   recipes below. If grep returns no results, gap #8 doesn't apply to
+   this repo and no API change is needed.
 
 ## Recipe for replacing `kotlin.Result<T>` in a public API
 
@@ -769,8 +852,162 @@ grep -nE "as io\\.github\\.kotlinmania\\.<pkg>\\.[A-Z][A-Za-z0-9_]+<kotlin\\.Any
 ```
 
 Every match is a candidate for the `internal class` + interface-return
-treatment. If grep returns no results, gap #8 doesn't apply to this
-repo and no API change is needed.
+treatment. If grep returns no results, this trigger (8a) doesn't apply
+to this repo and no API change is needed.
+
+---
+
+## Recipe for hiding Kotlin function types behind a `fun interface`
+
+The canonical pattern from the tree-sitter-language-kotlin
+`LanguageFn` / `LanguageProvider` rewrite (2026-05-23). Applies
+whenever a public Kotlin API uses a Kotlin function type
+(`() -> R`, `(A) -> R`, `(A, B) -> R`, `suspend (A) -> R`, etc.) in a
+**public** field, parameter, or return position.
+
+The principle: **named SAM interface, not anonymous function type.**
+Swift Export bridges named types as stable nominal symbols; it bridges
+function types by erasing them through `Function0<R>` / `Function1<A, R>`
+/ ... which collide with the `Any` channel in the bridge. A `fun interface`
+gives the bridge a real symbol, and Kotlin's SAM conversion keeps lambda
+call sites unchanged.
+
+### Before
+
+```kotlin
+package io.github.kotlinmania.treesitterlanguage
+
+class LanguageFn private constructor(private val raw: () -> Long) {
+    companion object {
+        fun fromRaw(f: () -> Long): LanguageFn = LanguageFn(f)
+    }
+    fun intoRaw(): () -> Long = raw
+}
+```
+
+Plugin-generated bridge file (`build/SwiftExport/.../TreeSitterLanguage.kt`)
+ends up with:
+
+```kotlin
+@ExportedBridge
+fun __root___LanguageFn_intoRaw(self: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val ____self = dereferenceExternalRCRef(self) as kotlin.Function0<kotlin.Long>
+    // ^^^ Unchecked cast of 'Any' to '() -> Long'
+    ...
+}
+```
+
+Under `allWarningsAsErrors.set(true)` the warning becomes an error
+and `compileSwiftExportMainKotlin<Target>` fails.
+
+### After
+
+```kotlin
+package io.github.kotlinmania.treesitterlanguage
+
+/**
+ * Single-abstract-method interface that stands in for the upstream
+ * Rust `unsafe extern "C" fn() -> *const c_void` function pointer.
+ * Named so Swift Export can bridge a nominal symbol instead of an
+ * erased `FunctionN<...>`.
+ */
+fun interface LanguageProvider {
+    fun call(): Long
+}
+
+class LanguageFn private constructor(private val raw: LanguageProvider) {
+    companion object {
+        fun fromRaw(f: LanguageProvider): LanguageFn = LanguageFn(f)
+    }
+    fun intoRaw(): LanguageProvider = raw
+}
+```
+
+`LanguageProvider` is `fun interface`, so Kotlin's SAM conversion still
+accepts a lambda at the call site:
+
+```kotlin
+val fn = LanguageFn.fromRaw { tree_sitter_language() }
+// Equivalent to: LanguageFn.fromRaw(LanguageProvider { tree_sitter_language() })
+```
+
+The bridge file's exported function now references `LanguageProvider`
+(a nominal symbol Swift Export emits a binding for) instead of the
+erased `Function0<Long>`. No `Any` cast.
+
+### Tests
+
+SAM-convertible interfaces work the same as function types in tests
+— pass a lambda or an explicit implementation, your choice:
+
+```kotlin
+@Test
+fun fromRawAcceptsLambda() {
+    val fn = LanguageFn.fromRaw { 42L }
+    assertEquals(42L, fn.intoRaw().call())
+}
+
+@Test
+fun fromRawAcceptsExplicitImpl() {
+    val provider = object : LanguageProvider {
+        override fun call(): Long = 99L
+    }
+    val fn = LanguageFn.fromRaw(provider)
+    assertSame(provider, fn.intoRaw())
+}
+```
+
+### What NOT to do
+
+```kotlin
+// WRONG: regular `interface` loses SAM conversion. Every existing
+// `LanguageFn.fromRaw { ... }` call site breaks because Kotlin won't
+// auto-wrap the lambda. Use `fun interface` instead.
+interface LanguageProvider {
+    fun call(): Long
+}
+
+// WRONG: switching to Function0<Long> is the same erasure problem.
+// The bridge still writes `as kotlin.Function0<kotlin.Long>` because
+// Function0 IS the underlying type of `() -> Long`.
+class LanguageFn private constructor(private val raw: Function0<Long>)
+
+// WRONG: silencing the warning leaves the unchecked cast in the
+// bridge file. The plugin's runtime cast remains and the bridge
+// shape is unchanged — only the compiler is muted.
+tasks.matching { it.name.startsWith("compileSwiftExportMain") }
+    .withType<KotlinCompilationTask<*>>()
+    .configureEach {
+        compilerOptions.allWarningsAsErrors.set(false)
+    }
+
+// WRONG: typealias to a Function type does NOT hide it from the
+// bridge. The underlying function type still participates.
+typealias LanguageProvider = () -> Long
+```
+
+### Scope check
+
+For each repo running Swift Export, grep the bridge file once after
+a fresh `embedSwiftExportForXcode` run:
+
+```sh
+grep -nE "as kotlin\\.Function[0-9]+<" \
+    build/SwiftExport/macosArm64/Debug/files/*/*.kt
+```
+
+Every match is a candidate for the `fun interface` treatment. As a
+source-side audit, also grep for public function-type signatures:
+
+```sh
+grep -nE "^(public |internal |private )?(class |object |val |var |fun )[^=]*: \\(.*\\) -> " \
+    src/commonMain/kotlin/**/*.kt
+grep -nE "^(public |internal |private )?(class |object |val |var |fun )[^=]*\\(.* \\(.*\\) -> " \
+    src/commonMain/kotlin/**/*.kt
+```
+
+If both grep passes return no results, trigger 8b doesn't apply and
+no API change is needed.
 
 ---
 
