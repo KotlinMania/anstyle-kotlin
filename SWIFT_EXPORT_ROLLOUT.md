@@ -498,8 +498,8 @@ become deletable.
 
 8. **The Kotlin Swift Export bridge file casts `Any?` to generic public
    types under `allWarningsAsErrors=true`.** When public Kotlin APIs
-   include generic classes (e.g. `WithPosition<T>`, `ZipEq<L, R>`),
-   the plugin-generated bridge at
+   include unconstrained generic classes (e.g. `WithPosition<T>`,
+   `ZipEq<L, R>`), the plugin-generated bridge at
    `build/SwiftExport/<target>/<config>/files/<Module>/<Module>.kt`
    contains unchecked casts of the form
    `dereferenceExternalRCRef(self) as io.github.kotlinmania.<pkg>.WithPosition<kotlin.Any?>`.
@@ -509,12 +509,45 @@ become deletable.
    than `kotlin.Result`. The flat-class workaround in [§ Recipe for
    replacing `kotlin.Result<T>` in a public API](#recipe-for-replacing-kotlinresultt-in-a-public-api)
    does NOT apply — these are upstream iterator/wrapper types that
-   cannot be flattened without unfaithful translation. **Per-repo
-   workaround under investigation**: scope `allWarningsAsErrors=false`
-   to the `compileSwiftExportMain*` task family only, so user code
-   stays under the strict gate but the plugin-generated bridge file
-   gets a pass. (`itertools-kotlin` PR #18 is the first repo where
-   this hit; the fix is being explored on a follow-up branch.)
+   cannot be flattened without unfaithful translation.
+
+   **Per-repo fix**: stop exposing the unconstrained generic classes.
+   Swift Export only emits bridge code for symbols visible in the
+   public API surface — internal types are skipped, so no
+   `as <UserClass><Any?>` cast gets generated for them. The pattern
+   from itertools-kotlin commit `40513a5`:
+
+   - Mark every public unconstrained generic iterator/wrapper class
+     `internal class` (the class itself, its companion factories, and
+     any nested sealed subclasses).
+   - Public factory functions keep their generic type parameters but
+     declare their return type as a stdlib interface
+     (`Iterator<T>`, `Sequence<T>`, `Iterable<T>`, `List<T>`, etc.)
+     instead of the concrete internal class. The internal class still
+     implements that interface, so callers get the same behavior with
+     no API change visible to Kotlin or Swift consumers.
+   - Tests in `commonTest` of the same module retain visibility of the
+     internal classes via Kotlin's module-private rules, so
+     type-specific assertions (`sizeHint`, internal `state`, `putBack`,
+     etc.) keep working by constructing the internal class directly.
+     Iteration-shape assertions can continue to use the public
+     factory.
+   - **DO NOT** scope `allWarningsAsErrors=false` to the
+     `compileSwiftExportMain*` task family. That was tried first
+     (itertools-kotlin PR #22) and is symptom suppression: it leaves
+     the unchecked `Any?` casts in the bridge and only mutes the
+     compiler. The `tasks.matching { ... }.withType<KotlinCompilationTask<*>>()`
+     block (and any `KotlinCompilationTask` import that accompanies
+     it) should be deleted whenever found.
+
+   With the internal-class fix, `allWarningsAsErrors=true` applies
+   uniformly. The bridge surface shrinks accordingly — in itertools-kotlin
+   it went from ~20 `@ExportedBridge` functions and 12 generic
+   `@file:BindClassToObjCName(... :: class, ...)` annotations down to
+   6 `@ExportedBridge` functions and zero generic class bindings,
+   leaving only the genuinely-public concrete types (e.g. `Position`)
+   bridged to Swift. itertools-kotlin commit `40513a5` is the canonical
+   reference.
 
 ## Recipe for replacing `kotlin.Result<T>` in a public API
 
@@ -605,6 +638,139 @@ sealed class SomeResult {
     class Err(val error: SomeConcreteError) : SomeResult()
 }
 ```
+
+---
+
+## Recipe for hiding unconstrained generic iterator classes
+
+The canonical pattern from itertools-kotlin commit `40513a5`. Applies
+whenever a public Kotlin API exposes a generic class whose type
+parameter is unconstrained (`class Foo<T>`, `class Bar<L, R>`, etc.)
+and the class is reachable through the module's exported surface.
+
+The principle: **public factories, internal implementations.** Swift
+Export only emits bridge code for symbols that are part of the
+public API — `internal` types are skipped. So the offending unchecked
+`Any?` casts disappear if the concrete class is hidden behind a stdlib
+interface return type.
+
+### Before
+
+```kotlin
+package io.github.kotlinmania.itertools
+
+class ZipEq<A, B>(
+    private val left: Iterator<A>,
+    private val right: Iterator<B>,
+) : Iterator<Pair<A, B>> {
+    override fun hasNext(): Boolean = TODO()
+    override fun next(): Pair<A, B> = TODO()
+}
+
+fun <A, B> zipEq(left: Iterator<A>, right: Iterator<B>): ZipEq<A, B> =
+    ZipEq(left, right)
+```
+
+Plugin-generated bridge file (`build/SwiftExport/.../Itertools.kt`) ends up with:
+
+```kotlin
+@ExportedBridge
+fun __root___ZipEq_next(self: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val ____self = dereferenceExternalRCRef(self) as io.github.kotlinmania.itertools.ZipEq<kotlin.Any?, kotlin.Any?>
+    // ^^^ Unchecked cast: 'Any?' to 'ZipEq<Any?, Any?>'
+    ...
+}
+```
+
+Under `allWarningsAsErrors.set(true)` that warning becomes an error
+and `compileSwiftExportMainKotlin<Target>` fails.
+
+### After
+
+```kotlin
+package io.github.kotlinmania.itertools
+
+internal class ZipEq<A, B>(
+    private val left: Iterator<A>,
+    private val right: Iterator<B>,
+) : Iterator<Pair<A, B>> {
+    override fun hasNext(): Boolean = TODO()
+    override fun next(): Pair<A, B> = TODO()
+}
+
+fun <A, B> zipEq(left: Iterator<A>, right: Iterator<B>): Iterator<Pair<A, B>> =
+    ZipEq(left, right)
+```
+
+The class is `internal`, so it never enters the Swift Export bridge.
+The factory's return type changed from `ZipEq<A, B>` (the concrete
+class) to `Iterator<Pair<A, B>>` (the stdlib interface). Kotlin
+consumers in other modules can still call `zipEq(...)` and iterate
+the result; Swift consumers get a bridge for the factory function
+alone, with no `<Any?>` cast.
+
+### Tests
+
+Tests in `commonTest` of the same module retain visibility of
+`internal` classes (Kotlin's module-private rules). When a test
+asserts on a type-specific member that isn't part of `Iterator<T>` —
+e.g. a custom `sizeHint`, `state`, `putBack`, internal counter —
+construct the internal class directly instead of going through the
+factory:
+
+```kotlin
+// commonTest can still see ZipEq's internal members
+@Test
+fun zipEqSizeHint() {
+    val iter = ZipEq(listOf(1).iterator(), listOf("a", "b").iterator())
+    assertEquals(1, iter.sizeHint())
+}
+
+// Iteration-shape assertions can still use the public factory
+@Test
+fun zipEqIterationShape() {
+    val seq = zipEq(listOf(1, 2).iterator(), listOf("a", "b").iterator()).asSequence().toList()
+    assertEquals(listOf(1 to "a", 2 to "b"), seq)
+}
+```
+
+### What NOT to do
+
+```kotlin
+// WRONG: silencing the warning leaves the unchecked Any? cast in the
+// bridge file. The plugin's runtime cast remains and the type-erased
+// shape of the bridge stays the same — only the compiler is muted.
+// Itertools-kotlin PR #22 tried this and was reverted by PR after.
+tasks.matching { it.name.startsWith("compileSwiftExportMain") }
+    .withType<KotlinCompilationTask<*>>()
+    .configureEach {
+        compilerOptions.allWarningsAsErrors.set(false)
+    }
+
+// WRONG: making the class `public abstract` and exposing only a
+// public interface doesn't help — Swift Export still bridges the
+// abstract class and emits the same `Any?` cast.
+abstract class ZipEq<A, B> : Iterator<Pair<A, B>>
+
+// WRONG: a `typealias` to a stdlib interface doesn't hide the
+// underlying class from Swift Export. The original class still
+// participates in bridging.
+typealias ZipEqAlias<A, B> = ZipEq<A, B>
+```
+
+### Scope check
+
+For each repo running Swift Export, grep the bridge file once after
+a fresh `embedSwiftExportForXcode` run:
+
+```sh
+grep -nE "as io\\.github\\.kotlinmania\\.<pkg>\\.[A-Z][A-Za-z0-9_]+<kotlin\\.Any" \
+    build/SwiftExport/macosArm64/Debug/files/*/*.kt
+```
+
+Every match is a candidate for the `internal class` + interface-return
+treatment. If grep returns no results, gap #8 doesn't apply to this
+repo and no API change is needed.
 
 ---
 
