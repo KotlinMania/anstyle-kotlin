@@ -17,4 +17,3 @@ class StyleTest {
         assertTrue(style.getEffects().contains(Effects.BOLD))
     }
 }
-

@@ -30,5 +30,4 @@ object Reset : Displayable, Comparable<Reset> {
     override fun compareTo(other: Reset): Int = 0
 }
 
-
 internal const val RESET: String = "\u001B[0m"

@@ -10,12 +10,15 @@ sealed class Color : Comparable<Color> {
      *
      * The user's terminal defines the meaning of each palette code.
      */
-    data class Ansi(val color: AnsiColor) : Color() {
-        override fun compareTo(other: Color): Int = when (other) {
-            is Ansi -> this.color.compareTo(other.color)
-            is Ansi256 -> -1
-            is Rgb -> -1
-        }
+    data class Ansi(
+        val color: AnsiColor,
+    ) : Color() {
+        override fun compareTo(other: Color): Int =
+            when (other) {
+                is Ansi -> this.color.compareTo(other.color)
+                is Ansi256 -> -1
+                is Rgb -> -1
+            }
     }
 
     /**
@@ -25,21 +28,27 @@ sealed class Color : Comparable<Color> {
      * - `0..232` map to [RgbColor] color values
      * - `232..` map to [RgbColor] gray-scale values
      */
-    data class Ansi256(val color: Ansi256Color) : Color() {
-        override fun compareTo(other: Color): Int = when (other) {
-            is Ansi -> 1
-            is Ansi256 -> this.color.compareTo(other.color)
-            is Rgb -> -1
-        }
+    data class Ansi256(
+        val color: Ansi256Color,
+    ) : Color() {
+        override fun compareTo(other: Color): Int =
+            when (other) {
+                is Ansi -> 1
+                is Ansi256 -> this.color.compareTo(other.color)
+                is Rgb -> -1
+            }
     }
 
     /** 24-bit ANSI RGB color codes */
-    data class Rgb(val color: RgbColor) : Color() {
-        override fun compareTo(other: Color): Int = when (other) {
-            is Ansi -> 1
-            is Ansi256 -> 1
-            is Rgb -> this.color.compareTo(other.color)
-        }
+    data class Rgb(
+        val color: RgbColor,
+    ) : Color() {
+        override fun compareTo(other: Color): Int =
+            when (other) {
+                is Ansi -> 1
+                is Ansi256 -> 1
+                is Rgb -> this.color.compareTo(other.color)
+            }
     }
 
     /**
@@ -66,60 +75,70 @@ sealed class Color : Comparable<Color> {
     /**
      * Render the ANSI code for a foreground color
      */
-    fun renderFg(): Displayable = when (this) {
-        is Ansi -> color.asFgBuffer()
-        is Ansi256 -> color.asFgBuffer()
-        is Rgb -> color.asFgBuffer()
-    }
-
-    internal fun writeFgTo(appendable: Appendable): Appendable {
-        val buffer = when (this) {
+    fun renderFg(): Displayable =
+        when (this) {
             is Ansi -> color.asFgBuffer()
             is Ansi256 -> color.asFgBuffer()
             is Rgb -> color.asFgBuffer()
         }
+
+    internal fun writeFgTo(appendable: Appendable): Appendable {
+        val buffer =
+            when (this) {
+                is Ansi -> color.asFgBuffer()
+                is Ansi256 -> color.asFgBuffer()
+                is Rgb -> color.asFgBuffer()
+            }
         return buffer.formatTo(appendable)
     }
 
     /**
      * Render the ANSI code for a background color
      */
-    fun renderBg(): Displayable = when (this) {
-        is Ansi -> color.asBgBuffer()
-        is Ansi256 -> color.asBgBuffer()
-        is Rgb -> color.asBgBuffer()
-    }
-
-    internal fun writeBgTo(appendable: Appendable): Appendable {
-        val buffer = when (this) {
+    fun renderBg(): Displayable =
+        when (this) {
             is Ansi -> color.asBgBuffer()
             is Ansi256 -> color.asBgBuffer()
             is Rgb -> color.asBgBuffer()
         }
+
+    internal fun writeBgTo(appendable: Appendable): Appendable {
+        val buffer =
+            when (this) {
+                is Ansi -> color.asBgBuffer()
+                is Ansi256 -> color.asBgBuffer()
+                is Rgb -> color.asBgBuffer()
+            }
         return buffer.formatTo(appendable)
     }
 
-    internal fun renderUnderline(): Displayable = when (this) {
-        is Ansi -> color.asUnderlineBuffer()
-        is Ansi256 -> color.asUnderlineBuffer()
-        is Rgb -> color.asUnderlineBuffer()
-    }
-
-    internal fun writeUnderlineTo(appendable: Appendable): Appendable {
-        val buffer = when (this) {
+    internal fun renderUnderline(): Displayable =
+        when (this) {
             is Ansi -> color.asUnderlineBuffer()
             is Ansi256 -> color.asUnderlineBuffer()
             is Rgb -> color.asUnderlineBuffer()
         }
+
+    internal fun writeUnderlineTo(appendable: Appendable): Appendable {
+        val buffer =
+            when (this) {
+                is Ansi -> color.asUnderlineBuffer()
+                is Ansi256 -> color.asUnderlineBuffer()
+                is Rgb -> color.asUnderlineBuffer()
+            }
         return buffer.formatTo(appendable)
     }
 }
 
 // Extension functions to convert to Color (equivalent to Rust's From trait)
 fun AnsiColor.toColor(): Color = Color.Ansi(this)
+
 fun Ansi256Color.toColor(): Color = Color.Ansi256(this)
+
 fun RgbColor.toColor(): Color = Color.Rgb(this)
+
 fun UByte.toColor(): Color = Color.Ansi256(Ansi256Color(this))
+
 fun Triple<UByte, UByte, UByte>.toColor(): Color = Color.Rgb(RgbColor(first, second, third))
 
 /**
@@ -174,7 +193,9 @@ enum class AnsiColor : Comparable<AnsiColor> {
     BrightCyan,
 
     /** Bright white: #7 (foreground code `97`, background code `107`). */
-    BrightWhite;
+    BrightWhite,
+
+    ;
 
     /**
      * Create a [Style] with this as the foreground
@@ -202,24 +223,25 @@ enum class AnsiColor : Comparable<AnsiColor> {
      */
     fun renderFg(): Displayable = NullFormatter(asFgStr())
 
-    private fun asFgStr(): String = when (this) {
-        Black -> escape("3", "0")
-        Red -> escape("3", "1")
-        Green -> escape("3", "2")
-        Yellow -> escape("3", "3")
-        Blue -> escape("3", "4")
-        Magenta -> escape("3", "5")
-        Cyan -> escape("3", "6")
-        White -> escape("3", "7")
-        BrightBlack -> escape("9", "0")
-        BrightRed -> escape("9", "1")
-        BrightGreen -> escape("9", "2")
-        BrightYellow -> escape("9", "3")
-        BrightBlue -> escape("9", "4")
-        BrightMagenta -> escape("9", "5")
-        BrightCyan -> escape("9", "6")
-        BrightWhite -> escape("9", "7")
-    }
+    private fun asFgStr(): String =
+        when (this) {
+            Black -> escape("3", "0")
+            Red -> escape("3", "1")
+            Green -> escape("3", "2")
+            Yellow -> escape("3", "3")
+            Blue -> escape("3", "4")
+            Magenta -> escape("3", "5")
+            Cyan -> escape("3", "6")
+            White -> escape("3", "7")
+            BrightBlack -> escape("9", "0")
+            BrightRed -> escape("9", "1")
+            BrightGreen -> escape("9", "2")
+            BrightYellow -> escape("9", "3")
+            BrightBlue -> escape("9", "4")
+            BrightMagenta -> escape("9", "5")
+            BrightCyan -> escape("9", "6")
+            BrightWhite -> escape("9", "7")
+        }
 
     internal fun asFgBuffer(): DisplayBuffer =
         DisplayBuffer().writeStr(asFgStr())
@@ -229,24 +251,25 @@ enum class AnsiColor : Comparable<AnsiColor> {
      */
     fun renderBg(): Displayable = NullFormatter(asBgStr())
 
-    private fun asBgStr(): String = when (this) {
-        Black -> escape("4", "0")
-        Red -> escape("4", "1")
-        Green -> escape("4", "2")
-        Yellow -> escape("4", "3")
-        Blue -> escape("4", "4")
-        Magenta -> escape("4", "5")
-        Cyan -> escape("4", "6")
-        White -> escape("4", "7")
-        BrightBlack -> escape("10", "0")
-        BrightRed -> escape("10", "1")
-        BrightGreen -> escape("10", "2")
-        BrightYellow -> escape("10", "3")
-        BrightBlue -> escape("10", "4")
-        BrightMagenta -> escape("10", "5")
-        BrightCyan -> escape("10", "6")
-        BrightWhite -> escape("10", "7")
-    }
+    private fun asBgStr(): String =
+        when (this) {
+            Black -> escape("4", "0")
+            Red -> escape("4", "1")
+            Green -> escape("4", "2")
+            Yellow -> escape("4", "3")
+            Blue -> escape("4", "4")
+            Magenta -> escape("4", "5")
+            Cyan -> escape("4", "6")
+            White -> escape("4", "7")
+            BrightBlack -> escape("10", "0")
+            BrightRed -> escape("10", "1")
+            BrightGreen -> escape("10", "2")
+            BrightYellow -> escape("10", "3")
+            BrightBlue -> escape("10", "4")
+            BrightMagenta -> escape("10", "5")
+            BrightCyan -> escape("10", "6")
+            BrightWhite -> escape("10", "7")
+        }
 
     internal fun asBgBuffer(): DisplayBuffer =
         DisplayBuffer().writeStr(asBgStr())
@@ -302,24 +325,25 @@ enum class AnsiColor : Comparable<AnsiColor> {
     /**
      * Report whether the color is bright
      */
-    fun isBright(): Boolean = when (this) {
-        Black -> false
-        Red -> false
-        Green -> false
-        Yellow -> false
-        Blue -> false
-        Magenta -> false
-        Cyan -> false
-        White -> false
-        BrightBlack -> true
-        BrightRed -> true
-        BrightGreen -> true
-        BrightYellow -> true
-        BrightBlue -> true
-        BrightMagenta -> true
-        BrightCyan -> true
-        BrightWhite -> true
-    }
+    fun isBright(): Boolean =
+        when (this) {
+            Black -> false
+            Red -> false
+            Green -> false
+            Yellow -> false
+            Blue -> false
+            Magenta -> false
+            Cyan -> false
+            White -> false
+            BrightBlack -> true
+            BrightRed -> true
+            BrightGreen -> true
+            BrightYellow -> true
+            BrightBlue -> true
+            BrightMagenta -> true
+            BrightCyan -> true
+            BrightWhite -> true
+        }
 }
 
 /**
@@ -329,8 +353,9 @@ enum class AnsiColor : Comparable<AnsiColor> {
  * - `0..232` map to [RgbColor] color values
  * - `232..` map to [RgbColor] gray-scale values
  */
-data class Ansi256Color(val index: UByte) : Comparable<Ansi256Color> {
-
+data class Ansi256Color(
+    val index: UByte,
+) : Comparable<Ansi256Color> {
     override fun compareTo(other: Ansi256Color): Int = index.compareTo(other.index)
 
     /**
@@ -357,25 +382,26 @@ data class Ansi256Color(val index: UByte) : Comparable<Ansi256Color> {
     /**
      * Convert to [AnsiColor] when there is a 1:1 mapping
      */
-    fun intoAnsi(): AnsiColor? = when (index.toInt()) {
-        0 -> AnsiColor.Black
-        1 -> AnsiColor.Red
-        2 -> AnsiColor.Green
-        3 -> AnsiColor.Yellow
-        4 -> AnsiColor.Blue
-        5 -> AnsiColor.Magenta
-        6 -> AnsiColor.Cyan
-        7 -> AnsiColor.White
-        8 -> AnsiColor.BrightBlack
-        9 -> AnsiColor.BrightRed
-        10 -> AnsiColor.BrightGreen
-        11 -> AnsiColor.BrightYellow
-        12 -> AnsiColor.BrightBlue
-        13 -> AnsiColor.BrightMagenta
-        14 -> AnsiColor.BrightCyan
-        15 -> AnsiColor.BrightWhite
-        else -> null
-    }
+    fun intoAnsi(): AnsiColor? =
+        when (index.toInt()) {
+            0 -> AnsiColor.Black
+            1 -> AnsiColor.Red
+            2 -> AnsiColor.Green
+            3 -> AnsiColor.Yellow
+            4 -> AnsiColor.Blue
+            5 -> AnsiColor.Magenta
+            6 -> AnsiColor.Cyan
+            7 -> AnsiColor.White
+            8 -> AnsiColor.BrightBlack
+            9 -> AnsiColor.BrightRed
+            10 -> AnsiColor.BrightGreen
+            11 -> AnsiColor.BrightYellow
+            12 -> AnsiColor.BrightBlue
+            13 -> AnsiColor.BrightMagenta
+            14 -> AnsiColor.BrightCyan
+            15 -> AnsiColor.BrightWhite
+            else -> null
+        }
 
     /**
      * Render the ANSI code for a foreground color
@@ -409,36 +435,41 @@ data class Ansi256Color(val index: UByte) : Comparable<Ansi256Color> {
         /**
          * Losslessly convert from [AnsiColor]
          */
-        fun fromAnsi(color: AnsiColor): Ansi256Color = when (color) {
-            AnsiColor.Black -> Ansi256Color(0u)
-            AnsiColor.Red -> Ansi256Color(1u)
-            AnsiColor.Green -> Ansi256Color(2u)
-            AnsiColor.Yellow -> Ansi256Color(3u)
-            AnsiColor.Blue -> Ansi256Color(4u)
-            AnsiColor.Magenta -> Ansi256Color(5u)
-            AnsiColor.Cyan -> Ansi256Color(6u)
-            AnsiColor.White -> Ansi256Color(7u)
-            AnsiColor.BrightBlack -> Ansi256Color(8u)
-            AnsiColor.BrightRed -> Ansi256Color(9u)
-            AnsiColor.BrightGreen -> Ansi256Color(10u)
-            AnsiColor.BrightYellow -> Ansi256Color(11u)
-            AnsiColor.BrightBlue -> Ansi256Color(12u)
-            AnsiColor.BrightMagenta -> Ansi256Color(13u)
-            AnsiColor.BrightCyan -> Ansi256Color(14u)
-            AnsiColor.BrightWhite -> Ansi256Color(15u)
-        }
+        fun fromAnsi(color: AnsiColor): Ansi256Color =
+            when (color) {
+                AnsiColor.Black -> Ansi256Color(0u)
+                AnsiColor.Red -> Ansi256Color(1u)
+                AnsiColor.Green -> Ansi256Color(2u)
+                AnsiColor.Yellow -> Ansi256Color(3u)
+                AnsiColor.Blue -> Ansi256Color(4u)
+                AnsiColor.Magenta -> Ansi256Color(5u)
+                AnsiColor.Cyan -> Ansi256Color(6u)
+                AnsiColor.White -> Ansi256Color(7u)
+                AnsiColor.BrightBlack -> Ansi256Color(8u)
+                AnsiColor.BrightRed -> Ansi256Color(9u)
+                AnsiColor.BrightGreen -> Ansi256Color(10u)
+                AnsiColor.BrightYellow -> Ansi256Color(11u)
+                AnsiColor.BrightBlue -> Ansi256Color(12u)
+                AnsiColor.BrightMagenta -> Ansi256Color(13u)
+                AnsiColor.BrightCyan -> Ansi256Color(14u)
+                AnsiColor.BrightWhite -> Ansi256Color(15u)
+            }
     }
 }
 
 // Extension function for UByte to Ansi256Color conversion
 fun UByte.toAnsi256Color(): Ansi256Color = Ansi256Color(this)
+
 fun AnsiColor.toAnsi256Color(): Ansi256Color = Ansi256Color.fromAnsi(this)
 
 /**
  * 24-bit ANSI RGB color codes
  */
-data class RgbColor(val r: UByte, val g: UByte, val b: UByte) : Comparable<RgbColor> {
-
+data class RgbColor(
+    val r: UByte,
+    val g: UByte,
+    val b: UByte,
+) : Comparable<RgbColor> {
     override fun compareTo(other: RgbColor): Int {
         val cmpR = r.compareTo(other.r)
         if (cmpR != 0) return cmpR
@@ -562,7 +593,9 @@ internal class DisplayBuffer : Displayable {
 /**
  * Simple wrapper that implements Displayable for a static string.
  */
-internal class NullFormatter(private val str: String) : Displayable {
+internal class NullFormatter(
+    private val str: String,
+) : Displayable {
     override fun formatTo(appendable: Appendable): Appendable = appendable.append(str)
 
     override fun toString(): String = str

@@ -3,7 +3,9 @@ package ai.solace.tui.anstyle.parse.state
 /**
  * Parser states for the ANSI escape code parsing state machine.
  */
-enum class State(val value: UByte) {
+enum class State(
+    val value: UByte,
+) {
     Anywhere(0u),
     CsiEntry(1u),
     CsiIgnore(2u),
@@ -19,7 +21,8 @@ enum class State(val value: UByte) {
     Ground(12u),
     OscString(13u),
     SosPmApcString(14u),
-    Utf8(15u);
+    Utf8(15u),
+    ;
 
     companion object {
         private val VALUES = entries.toTypedArray()
@@ -40,7 +43,9 @@ enum class State(val value: UByte) {
 /**
  * Actions performed during state transitions.
  */
-enum class Action(val value: UByte) {
+enum class Action(
+    val value: UByte,
+) {
     Nop(0u),
     Clear(1u),
     Collect(2u),
@@ -56,7 +61,8 @@ enum class Action(val value: UByte) {
     Print(12u),
     Put(13u),
     Unhook(14u),
-    BeginUtf8(15u);
+    BeginUtf8(15u),
+    ;
 
     companion object {
         private val VALUES = entries.toTypedArray()
@@ -122,4 +128,3 @@ private fun stateChangeInternal(state: State, byte: UByte): UByte {
     val byteIdx = byte.toInt()
     return STATE_CHANGES[stateIdx][byteIdx]
 }
-

@@ -13,12 +13,13 @@ class ColorChoiceTest {
 
     @Test
     fun choiceSerialization() {
-        val expected = listOf(
-            ColorChoice.Auto,
-            ColorChoice.AlwaysAnsi,
-            ColorChoice.Always,
-            ColorChoice.Never,
-        )
+        val expected =
+            listOf(
+                ColorChoice.Auto,
+                ColorChoice.AlwaysAnsi,
+                ColorChoice.Always,
+                ColorChoice.Never,
+            )
         val values = expected.map(AtomicChoice.Companion::fromChoice)
         val actual = values.mapNotNull(AtomicChoice.Companion::toChoice)
 

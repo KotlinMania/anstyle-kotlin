@@ -18,9 +18,9 @@ data class Style(
     private val fg: Color? = null,
     private val bg: Color? = null,
     private val underline: Color? = null,
-    private val effects: Effects = Effects.PLAIN
-) : Displayable, Comparable<Style> {
-
+    private val effects: Effects = Effects.PLAIN,
+) : Displayable,
+    Comparable<Style> {
     override fun compareTo(other: Style): Int {
         // Compare fg
         val fgCmp = compareNullable(fg, other.fg)
@@ -35,14 +35,13 @@ data class Style(
         return effects.compareTo(other.effects)
     }
 
-    private fun <T : Comparable<T>> compareNullable(a: T?, b: T?): Int {
-        return when {
+    private fun <T : Comparable<T>> compareNullable(a: T?, b: T?): Int =
+        when {
             a == null && b == null -> 0
             a == null -> -1
             b == null -> 1
             else -> a.compareTo(b)
         }
-    }
 
     // # Core
 
@@ -122,9 +121,14 @@ data class Style(
      * Unlike [Reset.render], this will elide the code if there is nothing to reset.
      */
     fun renderReset(): Displayable =
-        if (this != Style()) Reset else object : Displayable {
-            override fun formatTo(appendable: Appendable): Appendable = appendable
-            override fun toString(): String = ""
+        if (this != Style()) {
+            Reset
+        } else {
+            object : Displayable {
+                override fun formatTo(appendable: Appendable): Appendable = appendable
+
+                override fun toString(): String = ""
+            }
         }
 
     /**
@@ -249,12 +253,15 @@ fun Effects.toStyle(): Style = Style(effects = this)
 
 // Operator extensions for Style
 infix fun Style.or(effects: Effects): Style = copy(effects = getEffects().insert(effects))
+
 operator fun Style.minus(effects: Effects): Style = copy(effects = getEffects().remove(effects))
 
 // Equality comparison with Effects
 fun Style.equals(effects: Effects): Boolean = this == effects.toStyle()
 
-internal class StyleDisplay(private val style: Style) : Displayable {
+internal class StyleDisplay(
+    private val style: Style,
+) : Displayable {
     override fun formatTo(appendable: Appendable): Appendable = style.formatTo(appendable)
 
     override fun toString(): String = buildString { formatTo(this) }

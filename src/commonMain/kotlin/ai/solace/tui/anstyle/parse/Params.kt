@@ -117,27 +117,30 @@ class Params : Iterable<List<UShort>> {
         return result
     }
 
-    override fun toString(): String = buildString {
-        append("[")
-        var first = true
-        for (param in this@Params) {
-            if (!first) append(";")
-            first = false
-            var subFirst = true
-            for (subparam in param) {
-                if (!subFirst) append(":")
-                subFirst = false
-                append(subparam)
+    override fun toString(): String =
+        buildString {
+            append("[")
+            var first = true
+            for (param in this@Params) {
+                if (!first) append(";")
+                first = false
+                var subFirst = true
+                for (subparam in param) {
+                    if (!subFirst) append(":")
+                    subFirst = false
+                    append(subparam)
+                }
             }
+            append("]")
         }
-        append("]")
-    }
 }
 
 /**
  * Immutable subparameter iterator.
  */
-class ParamsIter(private val params: Params) : Iterator<List<UShort>> {
+class ParamsIter(
+    private val params: Params,
+) : Iterator<List<UShort>> {
     private var index: Int = 0
 
     override fun hasNext(): Boolean = index < params.len()

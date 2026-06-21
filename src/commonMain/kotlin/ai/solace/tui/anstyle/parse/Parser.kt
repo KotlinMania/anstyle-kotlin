@@ -17,7 +17,7 @@ import ai.solace.tui.anstyle.parse.state.stateChange
  * @see <a href="https://vt100.net/emu/dec_ansi_parser">Paul Williams' ANSI parser state machine</a>
  */
 class Parser<C : CharAccumulator>(
-    private val utf8Parser: C
+    private val utf8Parser: C,
 ) {
     private var state: State = State.Ground
     private val intermediates: UByteArray = UByteArray(MAX_INTERMEDIATES)
@@ -108,10 +108,11 @@ class Parser<C : CharAccumulator>(
      * The aliasing is needed here for multiple slices into oscRaw.
      */
     private fun <P : Perform> oscDispatch(performer: P, byte: UByte) {
-        val slices = Array(oscNumParams) { i ->
-            val (start, end) = oscParams[i]
-            oscRaw.subList(start, end).map { it.toByte() }.toByteArray()
-        }
+        val slices =
+            Array(oscNumParams) { i ->
+                val (start, end) = oscParams[i]
+                oscRaw.subList(start, end).map { it.toByte() }.toByteArray()
+            }
         performer.oscDispatch(slices, byte == 0x07.toUByte())
     }
 
@@ -280,13 +281,14 @@ class Utf8Parser : CharAccumulator {
             remaining -= 1
 
             if (remaining == 0) {
-                val c = if (codepoint <= Char.MAX_VALUE.code) {
-                    codepoint.toChar()
-                } else {
-                    // Supplementary character - return replacement for now
-                    // (full surrogate pair handling would need more work)
-                    '\uFFFD'
-                }
+                val c =
+                    if (codepoint <= Char.MAX_VALUE.code) {
+                        codepoint.toChar()
+                    } else {
+                        // Supplementary character - return replacement for now
+                        // (full surrogate pair handling would need more work)
+                        '\uFFFD'
+                    }
                 codepoint = 0
                 return c
             }

@@ -30,7 +30,9 @@ enum class ColorChoice {
     /**
      * Never emit colors.
      */
-    Never;
+    Never,
+
+    ;
 
     /**
      * Override the detected [ColorChoice].
@@ -63,19 +65,21 @@ internal class AtomicChoice {
     }
 
     companion object {
-        fun fromChoice(choice: ColorChoice): Int = when (choice) {
-            ColorChoice.Auto -> 0
-            ColorChoice.AlwaysAnsi -> 1
-            ColorChoice.Always -> 2
-            ColorChoice.Never -> 3
-        }
+        fun fromChoice(choice: ColorChoice): Int =
+            when (choice) {
+                ColorChoice.Auto -> 0
+                ColorChoice.AlwaysAnsi -> 1
+                ColorChoice.Always -> 2
+                ColorChoice.Never -> 3
+            }
 
-        fun toChoice(choice: Int): ColorChoice? = when (choice) {
-            0 -> ColorChoice.Auto
-            1 -> ColorChoice.AlwaysAnsi
-            2 -> ColorChoice.Always
-            3 -> ColorChoice.Never
-            else -> null
-        }
+        fun toChoice(choice: Int): ColorChoice? =
+            when (choice) {
+                0 -> ColorChoice.Auto
+                1 -> ColorChoice.AlwaysAnsi
+                2 -> ColorChoice.Always
+                3 -> ColorChoice.Never
+                else -> null
+            }
     }
 }

@@ -40,4 +40,3 @@ class ColorTest {
         assertNoAlign(Color.Ansi(AnsiColor.White).renderBg())
     }
 }
-

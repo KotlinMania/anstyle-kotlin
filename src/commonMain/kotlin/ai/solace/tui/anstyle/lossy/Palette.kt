@@ -9,8 +9,9 @@ import ai.solace.tui.anstyle.RgbColor
  *
  * Based on [wikipedia](https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit)
  */
-data class Palette(val colors: Array<RgbColor>) {
-
+data class Palette(
+    val colors: Array<RgbColor>,
+) {
     init {
         require(colors.size == 16) { "Palette must have exactly 16 colors" }
     }
@@ -67,50 +68,52 @@ data class Palette(val colors: Array<RgbColor>) {
         /**
          * Typical colors that are used when booting PCs and leaving them in text mode.
          */
-        val VGA: Palette = Palette(
-            arrayOf(
-                RgbColor(0u, 0u, 0u),
-                RgbColor(170u, 0u, 0u),
-                RgbColor(0u, 170u, 0u),
-                RgbColor(170u, 85u, 0u),
-                RgbColor(0u, 0u, 170u),
-                RgbColor(170u, 0u, 170u),
-                RgbColor(0u, 170u, 170u),
-                RgbColor(170u, 170u, 170u),
-                RgbColor(85u, 85u, 85u),
-                RgbColor(255u, 85u, 85u),
-                RgbColor(85u, 255u, 85u),
-                RgbColor(255u, 255u, 85u),
-                RgbColor(85u, 85u, 255u),
-                RgbColor(255u, 85u, 255u),
-                RgbColor(85u, 255u, 255u),
-                RgbColor(255u, 255u, 255u),
+        val VGA: Palette =
+            Palette(
+                arrayOf(
+                    RgbColor(0u, 0u, 0u),
+                    RgbColor(170u, 0u, 0u),
+                    RgbColor(0u, 170u, 0u),
+                    RgbColor(170u, 85u, 0u),
+                    RgbColor(0u, 0u, 170u),
+                    RgbColor(170u, 0u, 170u),
+                    RgbColor(0u, 170u, 170u),
+                    RgbColor(170u, 170u, 170u),
+                    RgbColor(85u, 85u, 85u),
+                    RgbColor(255u, 85u, 85u),
+                    RgbColor(85u, 255u, 85u),
+                    RgbColor(255u, 255u, 85u),
+                    RgbColor(85u, 85u, 255u),
+                    RgbColor(255u, 85u, 255u),
+                    RgbColor(85u, 255u, 255u),
+                    RgbColor(255u, 255u, 255u),
+                ),
             )
-        )
 
         /**
          * Campbell theme, used as of Windows 10 version 1709.
          */
-        val WIN10_CONSOLE: Palette = Palette(
-            arrayOf(
-                RgbColor(12u, 12u, 12u),
-                RgbColor(197u, 15u, 31u),
-                RgbColor(19u, 161u, 14u),
-                RgbColor(193u, 156u, 0u),
-                RgbColor(0u, 55u, 218u),
-                RgbColor(136u, 23u, 152u),
-                RgbColor(58u, 150u, 221u),
-                RgbColor(204u, 204u, 204u),
-                RgbColor(118u, 118u, 118u),
-                RgbColor(231u, 72u, 86u),
-                RgbColor(22u, 198u, 12u),
-                RgbColor(249u, 241u, 165u),
-                RgbColor(59u, 120u, 255u),
-                RgbColor(180u, 0u, 158u),
-                RgbColor(97u, 214u, 214u),
-                RgbColor(242u, 242u, 242u),
+        val WIN10_CONSOLE: Palette =
+            Palette(
+                arrayOf(
+                    RgbColor(12u, 12u, 12u),
+                    RgbColor(197u, 15u, 31u),
+                    RgbColor(19u, 161u, 14u),
+                    RgbColor(193u, 156u, 0u),
+                    RgbColor(0u, 55u, 218u),
+                    RgbColor(136u, 23u, 152u),
+                    RgbColor(58u, 150u, 221u),
+                    RgbColor(204u, 204u, 204u),
+                    RgbColor(118u, 118u, 118u),
+                    RgbColor(231u, 72u, 86u),
+                    RgbColor(22u, 198u, 12u),
+                    RgbColor(249u, 241u, 165u),
+                    RgbColor(59u, 120u, 255u),
+                    RgbColor(180u, 0u, 158u),
+                    RgbColor(97u, 214u, 214u),
+                    RgbColor(242u, 242u, 242u),
+                ),
             )
-        )
 
         /**
          * Platform-specific default palette.

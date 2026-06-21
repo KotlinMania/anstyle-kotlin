@@ -22,4 +22,3 @@ class ResetTest {
         assertNoAlign(Reset.render())
     }
 }
-
