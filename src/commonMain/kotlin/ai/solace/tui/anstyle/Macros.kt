@@ -8,3 +8,5 @@ package ai.solace.tui.anstyle
 //
 // This file is kept for reference only.
 // The escape function is defined in Color.kt since Kotlin doesn't have file-scoped macros.
+
+internal const val MACROS_REF = "escape function in Color.kt"

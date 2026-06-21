@@ -37,17 +37,17 @@ class Params : Iterable<List<UShort>> {
     /**
      * Total number of parameters and subparameters.
      */
-    private var _len: Int = 0
+    private var lenBacking: Int = 0
 
     /**
      * Returns the number of parameters.
      */
-    fun len(): Int = _len
+    fun len(): Int = lenBacking
 
     /**
      * Returns `true` if there are no parameters present.
      */
-    fun isEmpty(): Boolean = _len == 0
+    fun isEmpty(): Boolean = lenBacking == 0
 
     /**
      * Returns an iterator over all parameters and subparameters.
@@ -57,34 +57,34 @@ class Params : Iterable<List<UShort>> {
     /**
      * Returns `true` if there is no more space for additional parameters.
      */
-    internal fun isFull(): Boolean = _len == MAX_PARAMS
+    internal fun isFull(): Boolean = lenBacking == MAX_PARAMS
 
     /**
      * Clear all parameters.
      */
     internal fun clear() {
         currentSubparams = 0u
-        _len = 0
+        lenBacking = 0
     }
 
     /**
      * Add an additional parameter.
      */
     internal fun push(item: UShort) {
-        subparams[_len - currentSubparams.toInt()] = (currentSubparams + 1u).toUByte()
-        params[_len] = item
+        subparams[lenBacking - currentSubparams.toInt()] = (currentSubparams + 1u).toUByte()
+        params[lenBacking] = item
         currentSubparams = 0u
-        _len += 1
+        lenBacking += 1
     }
 
     /**
      * Add an additional subparameter to the current parameter.
      */
     internal fun extend(item: UShort) {
-        subparams[_len - currentSubparams.toInt()] = (currentSubparams + 1u).toUByte()
-        params[_len] = item
+        subparams[lenBacking - currentSubparams.toInt()] = (currentSubparams + 1u).toUByte()
+        params[lenBacking] = item
         currentSubparams = (currentSubparams + 1u).toUByte()
-        _len += 1
+        lenBacking += 1
     }
 
     /**
@@ -100,8 +100,8 @@ class Params : Iterable<List<UShort>> {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Params) return false
-        if (_len != other._len) return false
-        for (i in 0 until _len) {
+        if (lenBacking != other.lenBacking) return false
+        for (i in 0 until lenBacking) {
             if (params[i] != other.params[i]) return false
             if (subparams[i] != other.subparams[i]) return false
         }
@@ -109,8 +109,8 @@ class Params : Iterable<List<UShort>> {
     }
 
     override fun hashCode(): Int {
-        var result = _len
-        for (i in 0 until _len) {
+        var result = lenBacking
+        for (i in 0 until lenBacking) {
             result = 31 * result + params[i].hashCode()
             result = 31 * result + subparams[i].hashCode()
         }

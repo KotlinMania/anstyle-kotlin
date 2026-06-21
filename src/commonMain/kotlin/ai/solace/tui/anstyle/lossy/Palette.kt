@@ -10,7 +10,7 @@ import ai.solace.tui.anstyle.RgbColor
  * Based on [wikipedia](https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit)
  */
 data class Palette(
-    val colors: Array<RgbColor>,
+    val colors: List<RgbColor>,
 ) {
     init {
         require(colors.size == 16) { "Palette must have exactly 16 colors" }
@@ -59,10 +59,10 @@ data class Palette(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Palette) return false
-        return colors.contentEquals(other.colors)
+        return colors == other.colors
     }
 
-    override fun hashCode(): Int = colors.contentHashCode()
+    override fun hashCode(): Int = colors.hashCode()
 
     companion object {
         /**
@@ -70,7 +70,7 @@ data class Palette(
          */
         val VGA: Palette =
             Palette(
-                arrayOf(
+                listOf(
                     RgbColor(0u, 0u, 0u),
                     RgbColor(170u, 0u, 0u),
                     RgbColor(0u, 170u, 0u),
@@ -95,7 +95,7 @@ data class Palette(
          */
         val WIN10_CONSOLE: Palette =
             Palette(
-                arrayOf(
+                listOf(
                     RgbColor(12u, 12u, 12u),
                     RgbColor(197u, 15u, 31u),
                     RgbColor(19u, 161u, 14u),

@@ -45,3 +45,5 @@ package ai.solace.tui.anstyle
  * reset declarations
  * style declarations
  */
+
+internal const val LIB_DESCRIPTION = "anstyle core types"
