@@ -1,3 +1,4 @@
+// port-lint: tests style.rs
 package ai.solace.tui.anstyle
 
 import kotlin.test.Test

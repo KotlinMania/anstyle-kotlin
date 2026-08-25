@@ -1,4 +1,3 @@
-// port-lint: source crates/colorchoice/src/lib.rs
 package ai.solace.tui.anstyle.colorchoice
 
 import kotlin.concurrent.atomics.AtomicInt
