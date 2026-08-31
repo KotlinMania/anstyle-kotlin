@@ -1,12 +1,8 @@
 // port-lint: source macros.rs
 package ai.solace.tui.anstyle
 
-// The escape! macro from Rust is converted to a function in Color.kt:
-// internal fun escape(vararg parts: String): String = "\u001B[${parts.joinToString("")}m"
-//
-// In Rust, the macro was:
-//
-// This file is kept for reference only.
-// The escape function is defined in Color.kt since Kotlin doesn't have file-scoped macros.
+/**
+ * Creates an ANSI escape sequence: ESC[ + parts + m
+ */
+internal fun escape(vararg parts: String): String = "\u001B[${parts.joinToString("")}m"
 
-internal const val MACROS_REF = "escape function in Color.kt"

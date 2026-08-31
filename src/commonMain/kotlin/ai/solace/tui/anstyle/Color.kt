@@ -128,6 +128,12 @@ sealed class Color : Comparable<Color> {
             }
         return buffer.formatTo(appendable)
     }
+
+    companion object {
+        fun from(ansi: AnsiColor): Color = Ansi(ansi)
+        fun from(ansi256: Ansi256Color): Color = Ansi256(ansi256)
+        fun from(rgb: RgbColor): Color = Rgb(rgb)
+    }
 }
 
 // Extension functions to convert to Color (equivalent to Rust's From trait)
@@ -344,6 +350,13 @@ enum class AnsiColor : Comparable<AnsiColor> {
             BrightCyan -> true
             BrightWhite -> true
         }
+
+    companion object {
+        /**
+         * Losslessly convert from 256-color index when there is a 1:1 mapping
+         */
+        fun from(index: UByte): AnsiColor? = Ansi256Color(index).intoAnsi()
+    }
 }
 
 /**
@@ -454,6 +467,11 @@ data class Ansi256Color(
                 AnsiColor.BrightCyan -> Ansi256Color(14u)
                 AnsiColor.BrightWhite -> Ansi256Color(15u)
             }
+
+        /**
+         * Create an [Ansi256Color] from index
+         */
+        fun from(index: UByte): Ansi256Color = Ansi256Color(index)
     }
 }
 
@@ -538,6 +556,10 @@ data class RgbColor(
             .writeStr(";")
             .writeCode(b)
             .writeStr("m")
+
+    companion object {
+        fun from(r: UByte, g: UByte, b: UByte): RgbColor = RgbColor(r, g, b)
+    }
 }
 
 // Extension function for Triple to RgbColor conversion
@@ -600,9 +622,3 @@ internal class NullFormatter(
 
     override fun toString(): String = str
 }
-
-/**
- * Helper function equivalent to Rust's escape! macro.
- * Creates an ANSI escape sequence: ESC[ + parts + m
- */
-internal fun escape(vararg parts: String): String = "\u001B[${parts.joinToString("")}m"
