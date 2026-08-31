@@ -48,7 +48,25 @@ data class Effects(
 
         /** Characters legible but marked as if for deletion. Not supported in Terminal.app */
         val STRIKETHROUGH: Effects = Effects((1 shl 11).toUShort())
+
+        /** Convert effects to effects (identity) */
+        fun from(effects: Effects): Effects = effects
     }
+
+    /**
+     * Operator + to combine effects
+     */
+    operator fun plus(other: Effects): Effects = insert(other)
+
+    /**
+     * Operator iterator to iterate through enabled effects
+     */
+    operator fun iterator(): Iterator<Effects> = iter()
+
+    /**
+     * Bitwise and of effects
+     */
+    infix fun and(other: Effects): Effects = Effects((bits.toInt() and other.bits.toInt()).toUShort())
 
     /**
      * Check if no effects are enabled

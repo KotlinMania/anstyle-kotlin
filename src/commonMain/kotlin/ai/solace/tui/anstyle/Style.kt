@@ -246,6 +246,23 @@ data class Style(
         fg == null && bg == null && underline == null && effects.isPlain()
 
     override fun toString(): String = buildString { formatTo(this) }
+
+    companion object {
+        /**
+         * No styling
+         */
+        val PLAIN: Style = Style()
+
+        /**
+         * No styling
+         */
+        fun new(): Style = PLAIN
+
+        /**
+         * Convert effects into a style
+         */
+        fun from(effects: Effects): Style = Style(effects = effects)
+    }
 }
 
 // Extension function: convert Effects to Style
@@ -254,10 +271,22 @@ fun Effects.toStyle(): Style = Style(effects = this)
 // Operator extensions for Style
 infix fun Style.or(effects: Effects): Style = copy(effects = getEffects().insert(effects))
 
+operator fun Style.plus(effects: Effects): Style = copy(effects = getEffects().insert(effects))
+
+operator fun Style.plus(color: Color): Style = fgColor(color)
+
+operator fun Style.plus(other: Style): Style =
+    copy(
+        fg = other.getFgColor() ?: getFgColor(),
+        bg = other.getBgColor() ?: getBgColor(),
+        underline = other.getUnderlineColor() ?: getUnderlineColor(),
+        effects = getEffects().insert(other.getEffects()),
+    )
+
 operator fun Style.minus(effects: Effects): Style = copy(effects = getEffects().remove(effects))
 
-// Equality comparison with Effects
-fun Style.equals(effects: Effects): Boolean = this == effects.toStyle()
+// Check if Style matches Effects
+fun Style.matches(effects: Effects): Boolean = this == effects.toStyle()
 
 internal class StyleDisplay(
     private val style: Style,
@@ -266,3 +295,4 @@ internal class StyleDisplay(
 
     override fun toString(): String = buildString { formatTo(this) }
 }
+

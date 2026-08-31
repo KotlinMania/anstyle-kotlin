@@ -1,40 +1,9 @@
+// port-lint: tests tests/testsuite.rs
 package ai.solace.tui.anstyle
 
-import ai.solace.tui.anstyle.Ansi256Color
-import ai.solace.tui.anstyle.AnsiColor
-import ai.solace.tui.anstyle.Color
-import ai.solace.tui.anstyle.Effects
-import ai.solace.tui.anstyle.Style
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-// Rust original:
-//
-//
-//         AnsiColor::Black,
-//         AnsiColor::Red,
-//         AnsiColor::Green,
-//         AnsiColor::Yellow,
-//         AnsiColor::Blue,
-//         AnsiColor::Magenta,
-//         AnsiColor::Cyan,
-//         AnsiColor::White,
-//         AnsiColor::BrightBlack,
-//         AnsiColor::BrightRed,
-//         AnsiColor::BrightGreen,
-//         AnsiColor::BrightYellow,
-//         AnsiColor::BrightBlue,
-//         AnsiColor::BrightMagenta,
-//         AnsiColor::BrightCyan,
-//         AnsiColor::BrightWhite,
-//     ];
-//
-//     for c in ansi_colors {
-//         writeln!(actual, "{c}{c:?}{c:#}")?;
-//
-//     snapbox::assert_data_eq!(actual, snapbox::file!["no_leading_zero.vte": Text].raw());
-//
-//     Ok(())
 
 /**
  * Helper to format Style in Rust-compatible debug format
