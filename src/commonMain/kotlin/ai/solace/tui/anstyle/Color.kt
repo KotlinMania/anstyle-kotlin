@@ -131,7 +131,9 @@ sealed class Color : Comparable<Color> {
 
     companion object {
         fun from(ansi: AnsiColor): Color = Ansi(ansi)
+
         fun from(ansi256: Ansi256Color): Color = Ansi256(ansi256)
+
         fun from(rgb: RgbColor): Color = Rgb(rgb)
     }
 }

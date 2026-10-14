@@ -115,24 +115,24 @@ class Dispatcher : Perform {
         dispatched.add(Sequence.Osc(params.toList(), bellTerminated))
     }
 
-    override fun csiDispatch(params: Params, intermediates: UByteArray, ignore: Boolean, action: UByte) {
+    override fun csiDispatch(params: Params, intermediates: ByteArray, ignore: Boolean, action: UByte) {
         val paramList = mutableListOf<List<UShort>>()
         for (subparams in params) {
             paramList.add(subparams.toList())
         }
-        dispatched.add(Sequence.Csi(paramList, intermediates.toList(), ignore, action))
+        dispatched.add(Sequence.Csi(paramList, intermediates.map { it.toUByte() }, ignore, action))
     }
 
-    override fun escDispatch(intermediates: UByteArray, ignore: Boolean, byte: UByte) {
-        dispatched.add(Sequence.Esc(intermediates.toList(), ignore, byte))
+    override fun escDispatch(intermediates: ByteArray, ignore: Boolean, byte: UByte) {
+        dispatched.add(Sequence.Esc(intermediates.map { it.toUByte() }, ignore, byte))
     }
 
-    override fun hook(params: Params, intermediates: UByteArray, ignore: Boolean, action: UByte) {
+    override fun hook(params: Params, intermediates: ByteArray, ignore: Boolean, action: UByte) {
         val paramList = mutableListOf<List<UShort>>()
         for (subparams in params) {
             paramList.add(subparams.toList())
         }
-        dispatched.add(Sequence.DcsHook(paramList, intermediates.toList(), ignore, action))
+        dispatched.add(Sequence.DcsHook(paramList, intermediates.map { it.toUByte() }, ignore, action))
     }
 
     override fun put(byte: UByte) {

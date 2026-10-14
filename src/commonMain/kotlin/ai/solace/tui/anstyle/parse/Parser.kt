@@ -20,7 +20,7 @@ class Parser<C : CharAccumulator>(
     private val utf8Parser: C,
 ) {
     private var state: State = State.Ground
-    private val intermediates: UByteArray = UByteArray(MAX_INTERMEDIATES)
+    private val intermediates: ByteArray = ByteArray(MAX_INTERMEDIATES)
     private var intermediateIdx: Int = 0
     private val params: Params = Params()
     private var param: UShort = 0u
@@ -37,7 +37,7 @@ class Parser<C : CharAccumulator>(
     /**
      * Get the current intermediates.
      */
-    fun intermediates(): UByteArray = intermediates.copyOfRange(0, intermediateIdx)
+    fun intermediates(): ByteArray = intermediates.copyOfRange(0, intermediateIdx)
 
     /**
      * Advance the parser state.
@@ -69,11 +69,18 @@ class Parser<C : CharAccumulator>(
                 // Just run the action
                 performAction(performer, action, byte)
             }
+
             else -> {
                 // Exit actions
                 when (state) {
-                    State.DcsPassthrough -> performAction(performer, Action.Unhook, byte)
-                    State.OscString -> performAction(performer, Action.OscEnd, byte)
+                    State.DcsPassthrough -> {
+                        performAction(performer, Action.Unhook, byte)
+                    }
+
+                    State.OscString -> {
+                        performAction(performer, Action.OscEnd, byte)
+                    }
+
                     else -> {}
                 }
 
@@ -87,12 +94,15 @@ class Parser<C : CharAccumulator>(
                     State.CsiEntry, State.DcsEntry, State.Escape -> {
                         performAction(performer, Action.Clear, byte)
                     }
+
                     State.DcsPassthrough -> {
                         performAction(performer, Action.Hook, byte)
                     }
+
                     State.OscString -> {
                         performAction(performer, Action.OscStart, byte)
                     }
+
                     else -> {}
                 }
 
@@ -118,8 +128,14 @@ class Parser<C : CharAccumulator>(
 
     private fun <P : Perform> performAction(performer: P, action: Action, byte: UByte) {
         when (action) {
-            Action.Print -> performer.print(byte.toInt().toChar())
-            Action.Execute -> performer.execute(byte)
+            Action.Print -> {
+                performer.print(byte.toInt().toChar())
+            }
+
+            Action.Execute -> {
+                performer.execute(byte)
+            }
+
             Action.Hook -> {
                 if (params.isFull()) {
                     ignoring = true
@@ -128,11 +144,16 @@ class Parser<C : CharAccumulator>(
                 }
                 performer.hook(params(), intermediates(), ignoring, byte)
             }
-            Action.Put -> performer.put(byte)
+
+            Action.Put -> {
+                performer.put(byte)
+            }
+
             Action.OscStart -> {
                 oscRaw.clear()
                 oscNumParams = 0
             }
+
             Action.OscPut -> {
                 val idx = oscRaw.size
 
@@ -141,9 +162,15 @@ class Parser<C : CharAccumulator>(
                     val paramIdx = oscNumParams
                     when {
                         // Only process up to MAX_OSC_PARAMS
-                        paramIdx == MAX_OSC_PARAMS -> return
+                        paramIdx == MAX_OSC_PARAMS -> {
+                            return
+                        }
+
                         // First param is special - 0 to current byte index
-                        paramIdx == 0 -> oscParams[paramIdx] = 0 to idx
+                        paramIdx == 0 -> {
+                            oscParams[paramIdx] = 0 to idx
+                        }
+
                         // All other params depend on previous indexing
                         else -> {
                             val (_, prevEnd) = oscParams[paramIdx - 1]
@@ -155,6 +182,7 @@ class Parser<C : CharAccumulator>(
                     oscRaw.add(byte)
                 }
             }
+
             Action.OscEnd -> {
                 val paramIdx = oscNumParams
                 val idx = oscRaw.size
@@ -162,11 +190,13 @@ class Parser<C : CharAccumulator>(
                 when {
                     // Finish last parameter if not already maxed
                     paramIdx == MAX_OSC_PARAMS -> {}
+
                     // First param is special - 0 to current byte index
                     paramIdx == 0 -> {
                         oscParams[paramIdx] = 0 to idx
                         oscNumParams += 1
                     }
+
                     // All other params depend on previous indexing
                     else -> {
                         val (_, prevEnd) = oscParams[paramIdx - 1]
@@ -176,7 +206,11 @@ class Parser<C : CharAccumulator>(
                 }
                 oscDispatch(performer, byte)
             }
-            Action.Unhook -> performer.unhook()
+
+            Action.Unhook -> {
+                performer.unhook()
+            }
+
             Action.CsiDispatch -> {
                 if (params.isFull()) {
                     ignoring = true
@@ -185,17 +219,20 @@ class Parser<C : CharAccumulator>(
                 }
                 performer.csiDispatch(params(), intermediates(), ignoring, byte)
             }
+
             Action.EscDispatch -> {
                 performer.escDispatch(intermediates(), ignoring, byte)
             }
+
             Action.Collect -> {
                 if (intermediateIdx == MAX_INTERMEDIATES) {
                     ignoring = true
                 } else {
-                    intermediates[intermediateIdx] = byte
+                    intermediates[intermediateIdx] = byte.toByte()
                     intermediateIdx += 1
                 }
             }
+
             Action.Param -> {
                 if (params.isFull()) {
                     ignoring = true
@@ -207,10 +244,12 @@ class Parser<C : CharAccumulator>(
                         params.push(param)
                         param = 0u
                     }
+
                     byte == ':'.code.toUByte() -> {
                         params.extend(param)
                         param = 0u
                     }
+
                     else -> {
                         // Continue collecting bytes into param
                         val digit = (byte - '0'.code.toUByte()).toUShort()
@@ -219,6 +258,7 @@ class Parser<C : CharAccumulator>(
                     }
                 }
             }
+
             Action.Clear -> {
                 // Reset everything on ESC/CSI/DCS entry
                 intermediateIdx = 0
@@ -226,8 +266,13 @@ class Parser<C : CharAccumulator>(
                 param = 0u
                 params.clear()
             }
-            Action.BeginUtf8 -> processUtf8(performer, byte)
+
+            Action.BeginUtf8 -> {
+                processUtf8(performer, byte)
+            }
+
             Action.Ignore -> {}
+
             Action.Nop -> {}
         }
     }
@@ -301,24 +346,28 @@ class Utf8Parser : CharAccumulator {
                 // ASCII
                 b.toChar()
             }
+
             (b and 0xE0) == 0xC0 -> {
                 // 2-byte sequence
                 codepoint = b and 0x1F
                 remaining = 1
                 null
             }
+
             (b and 0xF0) == 0xE0 -> {
                 // 3-byte sequence
                 codepoint = b and 0x0F
                 remaining = 2
                 null
             }
+
             (b and 0xF8) == 0xF0 -> {
                 // 4-byte sequence
                 codepoint = b and 0x07
                 remaining = 3
                 null
             }
+
             else -> {
                 // Invalid start byte
                 '\uFFFD'
@@ -358,7 +407,7 @@ interface Perform {
      * The [ignore] flag indicates that more than two intermediates arrived and
      * subsequent characters were ignored.
      */
-    fun hook(params: Params, intermediates: UByteArray, ignore: Boolean, action: UByte) {}
+    fun hook(params: Params, intermediates: ByteArray, ignore: Boolean, action: UByte) {}
 
     /**
      * Pass bytes as part of a device control string to the handle chosen in [hook].
@@ -385,7 +434,7 @@ interface Perform {
      * or the number of parameters exceeded the maximum supported length,
      * and subsequent characters were ignored.
      */
-    fun csiDispatch(params: Params, intermediates: UByteArray, ignore: Boolean, action: UByte) {}
+    fun csiDispatch(params: Params, intermediates: ByteArray, ignore: Boolean, action: UByte) {}
 
     /**
      * The final character of an escape sequence has arrived.
@@ -393,5 +442,5 @@ interface Perform {
      * The [ignore] flag indicates that more than two intermediates arrived and
      * subsequent characters were ignored.
      */
-    fun escDispatch(intermediates: UByteArray, ignore: Boolean, byte: UByte) {}
+    fun escDispatch(intermediates: ByteArray, ignore: Boolean, byte: UByte) {}
 }

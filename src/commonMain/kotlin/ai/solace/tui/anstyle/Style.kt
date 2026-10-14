@@ -295,4 +295,3 @@ internal class StyleDisplay(
 
     override fun toString(): String = buildString { formatTo(this) }
 }
-

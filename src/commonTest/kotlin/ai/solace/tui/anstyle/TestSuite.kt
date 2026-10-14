@@ -4,7 +4,6 @@ package ai.solace.tui.anstyle
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-
 /**
  * Helper to format Style in Rust-compatible debug format
  */
@@ -35,7 +34,7 @@ private fun Style.toRustDebugString(): String {
             is Color.Ansi256 -> "Some(Ansi256(Ansi256Color(${underline.color.index})))"
             is Color.Rgb -> "Some(Rgb(RgbColor(${underline.color.r}, ${underline.color.g}, ${underline.color.b})))"
         }
-    val effectsStr = "Effects()" // Simplified - empty effects for this test
+    val effectsStr = effects.toString()
 
     return "Style { fg: $fgStr, bg: $bgStr, underline: $ulStr, effects: $effectsStr }"
 }

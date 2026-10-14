@@ -78,22 +78,70 @@ fun xtermToRgb(color: Ansi256Color, palette: Palette = Palette.DEFAULT): RgbColo
  */
 fun xtermToAnsi(color: Ansi256Color, palette: Palette = Palette.DEFAULT): AnsiColor =
     when (val index = color.index.toInt()) {
-        0 -> AnsiColor.Black
-        1 -> AnsiColor.Red
-        2 -> AnsiColor.Green
-        3 -> AnsiColor.Yellow
-        4 -> AnsiColor.Blue
-        5 -> AnsiColor.Magenta
-        6 -> AnsiColor.Cyan
-        7 -> AnsiColor.White
-        8 -> AnsiColor.BrightBlack
-        9 -> AnsiColor.BrightRed
-        10 -> AnsiColor.BrightGreen
-        11 -> AnsiColor.BrightYellow
-        12 -> AnsiColor.BrightBlue
-        13 -> AnsiColor.BrightMagenta
-        14 -> AnsiColor.BrightCyan
-        15 -> AnsiColor.BrightWhite
+        0 -> {
+            AnsiColor.Black
+        }
+
+        1 -> {
+            AnsiColor.Red
+        }
+
+        2 -> {
+            AnsiColor.Green
+        }
+
+        3 -> {
+            AnsiColor.Yellow
+        }
+
+        4 -> {
+            AnsiColor.Blue
+        }
+
+        5 -> {
+            AnsiColor.Magenta
+        }
+
+        6 -> {
+            AnsiColor.Cyan
+        }
+
+        7 -> {
+            AnsiColor.White
+        }
+
+        8 -> {
+            AnsiColor.BrightBlack
+        }
+
+        9 -> {
+            AnsiColor.BrightRed
+        }
+
+        10 -> {
+            AnsiColor.BrightGreen
+        }
+
+        11 -> {
+            AnsiColor.BrightYellow
+        }
+
+        12 -> {
+            AnsiColor.BrightBlue
+        }
+
+        13 -> {
+            AnsiColor.BrightMagenta
+        }
+
+        14 -> {
+            AnsiColor.BrightCyan
+        }
+
+        15 -> {
+            AnsiColor.BrightWhite
+        }
+
         else -> {
             val rgb = XTERM_COLORS[index]
             palette.findMatch(rgb)
