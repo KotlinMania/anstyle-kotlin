@@ -66,7 +66,8 @@ class StyleTest {
     @Test
     fun styleColors() {
         val style =
-            Style.new()
+            Style
+                .new()
                 .fgColor(AnsiColor.Red.toColor())
                 .bgColor(AnsiColor.Blue.toColor())
                 .underlineColor(AnsiColor.Green.toColor())
@@ -76,4 +77,3 @@ class StyleTest {
         assertEquals(AnsiColor.Green.toColor(), style.getUnderlineColor())
     }
 }
-
