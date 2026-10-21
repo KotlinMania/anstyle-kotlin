@@ -76,4 +76,28 @@ class StyleTest {
         assertEquals(AnsiColor.Blue.toColor(), style.getBgColor())
         assertEquals(AnsiColor.Green.toColor(), style.getUnderlineColor())
     }
+
+    @Test
+    fun styleBitorAssignMutatesReceiverAndRetainedAlias() {
+        val style = Style.new()
+        val alias = style
+        val returned = style.bitorAssign(Effects.BOLD)
+
+        kotlin.test.assertSame(style, alias)
+        kotlin.test.assertSame(style, returned)
+        assertEquals(Effects.BOLD, style.getEffects())
+        assertEquals(Effects.BOLD, alias.getEffects())
+    }
+
+    @Test
+    fun styleSubAssignMutatesReceiverAndRetainedAlias() {
+        val style = Style.new().bold().underline()
+        val alias = style
+        val returned = style.subAssign(Effects.BOLD)
+
+        kotlin.test.assertSame(style, alias)
+        kotlin.test.assertSame(style, returned)
+        assertEquals(Effects.UNDERLINE, style.getEffects())
+        assertEquals(Effects.UNDERLINE, alias.getEffects())
+    }
 }

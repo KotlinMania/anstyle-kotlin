@@ -18,7 +18,7 @@ data class Style(
     private val fg: Color? = null,
     private val bg: Color? = null,
     private val underline: Color? = null,
-    private val effects: Effects = Effects.PLAIN,
+    private var effects: Effects = Effects.PLAIN,
 ) : Displayable,
     Comparable<Style> {
     override fun compareTo(other: Style): Int {
@@ -108,11 +108,17 @@ data class Style(
 
     fun bitor(effects: Effects): Style = copy(effects = this.effects.insert(effects))
 
-    fun bitorAssign(effects: Effects): Style = bitor(effects)
+    fun bitorAssign(effects: Effects): Style {
+        this.effects = this.effects.insert(effects)
+        return this
+    }
 
     fun sub(effects: Effects): Style = copy(effects = this.effects.remove(effects))
 
-    fun subAssign(effects: Effects): Style = sub(effects)
+    fun subAssign(effects: Effects): Style {
+        this.effects = this.effects.remove(effects)
+        return this
+    }
 
     fun eq(other: Effects): Boolean = matches(other)
 
@@ -265,12 +271,12 @@ data class Style(
         /**
          * No styling
          */
-        val PLAIN: Style = Style()
+        val PLAIN: Style get() = Style()
 
         /**
          * No styling
          */
-        fun new(): Style = PLAIN
+        fun new(): Style = Style()
 
         /**
          * Convert effects into a style

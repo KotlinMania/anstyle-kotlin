@@ -49,6 +49,7 @@ version = providers.gradleProperty("project.version").getOrElse("0.1.0-SNAPSHOT"
 val frameworkName = providers.gradleProperty("project.frameworkName").getOrElse("Unnamed")
 val projectNamespace = providers.gradleProperty("project.namespace").getOrElse("io.github.kotlinmania")
 val kotlinVersion = providers.gradleProperty("versions.kotlin").getOrElse("2.4.0")
+
 fun csvProperty(name: String): Set<String> =
     providers
         .gradleProperty(name)
@@ -1359,15 +1360,27 @@ tasks.register("hostTests") {
 val strictSwiftConfiguration = layout.projectDirectory.file("verification/strict-swift.xcconfig")
 tasks.matching { it.name.endsWith("generateSPMPackage", ignoreCase = true) }.configureEach {
     doLast {
-        val manifests = layout.buildDirectory.dir("SPMPackage").get().asFile
-            .walkTopDown().filter { it.isFile && it.name == "Package.swift" }.toList()
+        val manifests =
+            layout.buildDirectory
+                .dir("SPMPackage")
+                .get()
+                .asFile
+                .walkTopDown()
+                .filter { it.isFile && it.name == "Package.swift" }
+                .toList()
         check(manifests.isNotEmpty()) { "No generated Swift package manifests" }
         val execOperations = serviceOf<ExecOperations>()
         manifests.forEach { manifest ->
-            execOperations.exec {
-                commandLine("python3", layout.projectDirectory.file("verification/enforce_swift6.py").asFile,
-                    manifest, "--receipt", manifest.parentFile.resolve("swift6-manifest-receipt.json"))
-            }.assertNormalExitValue()
+            execOperations
+                .exec {
+                    commandLine(
+                        "python3",
+                        layout.projectDirectory.file("verification/enforce_swift6.py").asFile,
+                        manifest,
+                        "--receipt",
+                        manifest.parentFile.resolve("swift6-manifest-receipt.json"),
+                    )
+                }.assertNormalExitValue()
         }
     }
 }
@@ -1439,13 +1452,23 @@ tasks.register("swiftExportSmokeTest") {
 
         val swiftTestOutput = ByteArrayOutputStream()
         try {
-            execOperations.exec {
-                workingDir = layout.projectDirectory.dir("swift-test-harness").asFile
-                commandLine("swift", "test", "-v",
-                    "-Xswiftc", "-swift-version", "-Xswiftc", "6", "-Xswiftc", "-warnings-as-errors")
-                standardOutput = swiftTestOutput
-                errorOutput = swiftTestOutput
-            }.assertNormalExitValue()
+            execOperations
+                .exec {
+                    workingDir = layout.projectDirectory.dir("swift-test-harness").asFile
+                    commandLine(
+                        "swift",
+                        "test",
+                        "-v",
+                        "-Xswiftc",
+                        "-swift-version",
+                        "-Xswiftc",
+                        "6",
+                        "-Xswiftc",
+                        "-warnings-as-errors",
+                    )
+                    standardOutput = swiftTestOutput
+                    errorOutput = swiftTestOutput
+                }.assertNormalExitValue()
         } finally {
             val swiftTestLog = swiftTestOutput.toString()
             println(swiftTestLog)
@@ -1454,15 +1477,22 @@ tasks.register("swiftExportSmokeTest") {
                 writeText(swiftTestLog)
             }
         }
-        execOperations.exec {
-            commandLine(
-                "python3",
-                layout.projectDirectory.file("verification/verify_swift_test_output.py").asFile,
-                layout.buildDirectory.file("reports/swift/swift-test.log").get().asFile,
-                "--receipt",
-                layout.buildDirectory.file("reports/swift/execution.json").get().asFile,
-            )
-        }.assertNormalExitValue()
+        execOperations
+            .exec {
+                commandLine(
+                    "python3",
+                    layout.projectDirectory.file("verification/verify_swift_test_output.py").asFile,
+                    layout.buildDirectory
+                        .file("reports/swift/swift-test.log")
+                        .get()
+                        .asFile,
+                    "--receipt",
+                    layout.buildDirectory
+                        .file("reports/swift/execution.json")
+                        .get()
+                        .asFile,
+                )
+            }.assertNormalExitValue()
     }
 }
 

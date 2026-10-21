@@ -10,13 +10,13 @@ package ai.solace.tui.anstyle
  * ```
  */
 data class Effects(
-    val bits: UShort,
+    var bits: UShort,
 ) : Comparable<Effects> {
     override fun compareTo(other: Effects): Int = bits.compareTo(other.bits)
 
     companion object {
         /** No [Effects] applied */
-        val PLAIN: Effects = Effects(0u)
+        val PLAIN: Effects get() = Effects(0u)
 
         /**
          * No effects enabled
@@ -28,26 +28,26 @@ data class Effects(
          */
         fun new(): Effects = PLAIN
 
-        val BOLD: Effects = Effects((1 shl 0).toUShort())
-        val DIMMED: Effects = Effects((1 shl 1).toUShort())
+        val BOLD: Effects get() = Effects((1 shl 0).toUShort())
+        val DIMMED: Effects get() = Effects((1 shl 1).toUShort())
 
         /** Not widely supported. Sometimes treated as inverse or blink */
-        val ITALIC: Effects = Effects((1 shl 2).toUShort())
+        val ITALIC: Effects get() = Effects((1 shl 2).toUShort())
 
         /** Style extensions exist for Kitty, VTE, mintty and iTerm2. */
-        val UNDERLINE: Effects = Effects((1 shl 3).toUShort())
-        val DOUBLE_UNDERLINE: Effects = Effects((1 shl 4).toUShort())
-        val CURLY_UNDERLINE: Effects = Effects((1 shl 5).toUShort())
-        val DOTTED_UNDERLINE: Effects = Effects((1 shl 6).toUShort())
-        val DASHED_UNDERLINE: Effects = Effects((1 shl 7).toUShort())
-        val BLINK: Effects = Effects((1 shl 8).toUShort())
+        val UNDERLINE: Effects get() = Effects((1 shl 3).toUShort())
+        val DOUBLE_UNDERLINE: Effects get() = Effects((1 shl 4).toUShort())
+        val CURLY_UNDERLINE: Effects get() = Effects((1 shl 5).toUShort())
+        val DOTTED_UNDERLINE: Effects get() = Effects((1 shl 6).toUShort())
+        val DASHED_UNDERLINE: Effects get() = Effects((1 shl 7).toUShort())
+        val BLINK: Effects get() = Effects((1 shl 8).toUShort())
 
         /** Swap foreground and background colors; inconsistent emulation */
-        val INVERT: Effects = Effects((1 shl 9).toUShort())
-        val HIDDEN: Effects = Effects((1 shl 10).toUShort())
+        val INVERT: Effects get() = Effects((1 shl 9).toUShort())
+        val HIDDEN: Effects get() = Effects((1 shl 10).toUShort())
 
         /** Characters legible but marked as if for deletion. Not supported in Terminal.app */
-        val STRIKETHROUGH: Effects = Effects((1 shl 11).toUShort())
+        val STRIKETHROUGH: Effects get() = Effects((1 shl 11).toUShort())
 
         /** Convert effects to effects (identity) */
         fun from(effects: Effects): Effects = effects
@@ -108,11 +108,14 @@ data class Effects(
      * assert(effects.contains(Effects.BOLD))
      * ```
      */
-    fun insert(other: Effects): Effects = Effects(bits or other.bits)
+    fun insert(other: Effects): Effects = Effects((bits.toInt() or other.bits.toInt()).toUShort())
 
     fun bitor(other: Effects): Effects = insert(other)
 
-    fun bitorAssign(other: Effects): Effects = insert(other)
+    fun bitorAssign(other: Effects): Effects {
+        this.bits = (this.bits.toInt() or other.bits.toInt()).toUShort()
+        return this
+    }
 
     /**
      * Removes the specified effects.
@@ -124,11 +127,14 @@ data class Effects(
      * assert(effects.contains(Effects.UNDERLINE))
      * ```
      */
-    fun remove(other: Effects): Effects = Effects(bits and other.bits.inv())
+    fun remove(other: Effects): Effects = Effects((bits.toInt() and other.bits.toInt().inv()).toUShort())
 
     fun sub(other: Effects): Effects = remove(other)
 
-    fun subAssign(other: Effects): Effects = remove(other)
+    fun subAssign(other: Effects): Effects {
+        this.bits = (this.bits.toInt() and other.bits.toInt().inv()).toUShort()
+        return this
+    }
 
     /**
      * Reset all effects
@@ -167,7 +173,20 @@ data class Effects(
      */
     fun render(): Displayable = EffectsDisplay(this)
 
-    fun fmt(appendable: Appendable): Appendable = EffectsDisplay(this).formatTo(appendable)
+    /**
+     * Debug format for [Effects], emitting `Effects(EFFECT1 | EFFECT2)` or `Effects()`
+     */
+    fun fmt(appendable: Appendable): Appendable {
+        appendable.append("Effects(")
+        var first = true
+        for (index in indexIter()) {
+            if (!first) appendable.append(" | ")
+            first = false
+            appendable.append(METADATA[index].name)
+        }
+        appendable.append(")")
+        return appendable
+    }
 
     internal fun writeTo(appendable: Appendable): Appendable {
         for (index in indexIter()) {
@@ -176,17 +195,7 @@ data class Effects(
         return appendable
     }
 
-    override fun toString(): String =
-        buildString {
-            append("Effects(")
-            var first = true
-            for (index in indexIter()) {
-                if (!first) append(" | ")
-                first = false
-                append(METADATA[index].name)
-            }
-            append(")")
-        }
+    override fun toString(): String = buildString { fmt(this) }
 }
 
 // Operator extensions for Effects
