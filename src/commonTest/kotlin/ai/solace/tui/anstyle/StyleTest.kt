@@ -100,4 +100,60 @@ class StyleTest {
         assertEquals(Effects.UNDERLINE, style.getEffects())
         assertEquals(Effects.UNDERLINE, alias.getEffects())
     }
+
+    @Test
+    fun styleFromAndInputBoundarySnapshot() {
+        val effects = Effects.BOLD
+        val style = Style(effects = effects)
+        effects.bitorAssign(Effects.UNDERLINE)
+
+        assertEquals(Effects.BOLD, style.getEffects())
+
+        val effects2 = Effects.BOLD
+        val styleFrom = Style.from(effects2)
+        effects2.bitorAssign(Effects.UNDERLINE)
+
+        assertEquals(Effects.BOLD, styleFrom.getEffects())
+    }
+
+    @Test
+    fun styleGetEffectsOutputSnapshot() {
+        val style = Style().bold()
+        val retrieved = style.getEffects()
+        retrieved.bitorAssign(Effects.UNDERLINE)
+
+        assertEquals(Effects.BOLD, style.getEffects())
+    }
+
+    @Test
+    fun styleCopyDeepCopy() {
+        val style = Style().bold()
+        val copy = style.copy()
+        style.bitorAssign(Effects.UNDERLINE)
+
+        assertEquals(Effects.BOLD, copy.getEffects())
+        assertEquals(Effects.BOLD or Effects.UNDERLINE, style.getEffects())
+    }
+
+    @Test
+    fun savedStyleDisplaySnapshot() {
+        val style = Style().bold()
+        val display = style.render()
+        val before = display.toString()
+        style.bitorAssign(Effects.UNDERLINE)
+        val after = display.toString()
+
+        assertEquals(before, after)
+        assertEquals("\u001b[1m", after)
+    }
+
+    @Test
+    fun retainedAliasStillMutates() {
+        val s1 = Style.new().bold()
+        val s2 = s1
+        s1.bitorAssign(Effects.UNDERLINE)
+
+        assertEquals(Effects.BOLD or Effects.UNDERLINE, s2.getEffects())
+        kotlin.test.assertSame(s1, s2)
+    }
 }

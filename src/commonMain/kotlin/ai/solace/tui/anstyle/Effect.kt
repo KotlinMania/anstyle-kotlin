@@ -50,7 +50,7 @@ data class Effects(
         val STRIKETHROUGH: Effects get() = Effects((1 shl 11).toUShort())
 
         /** Convert effects to effects (identity) */
-        fun from(effects: Effects): Effects = effects
+        fun from(effects: Effects): Effects = Effects(effects.bits)
     }
 
     /**
@@ -161,17 +161,17 @@ data class Effects(
     /**
      * Iterate over enabled effects
      */
-    fun iter(): EffectIter = EffectIter(index = 0, effects = this)
+    fun iter(): EffectIter = EffectIter(index = 0, effects = Effects(bits))
 
     /**
      * Iterate over enabled effect indices
      */
-    internal fun indexIter(): EffectIndexIter = EffectIndexIter(index = 0, effects = this)
+    internal fun indexIter(): EffectIndexIter = EffectIndexIter(index = 0, effects = Effects(bits))
 
     /**
      * Render the ANSI code
      */
-    fun render(): Displayable = EffectsDisplay(this)
+    fun render(): Displayable = EffectsDisplay(Effects(bits))
 
     /**
      * Debug format for [Effects], emitting `Effects(EFFECT1 | EFFECT2)` or `Effects()`
@@ -225,8 +225,10 @@ internal val METADATA: Array<Metadata> =
     )
 
 internal class EffectsDisplay(
-    private val effects: Effects,
+    effects: Effects,
 ) : Displayable {
+    private val effects: Effects = Effects(effects.bits)
+
     fun fmt(appendable: Appendable): Appendable = formatTo(appendable)
 
     override fun formatTo(appendable: Appendable): Appendable {
@@ -244,8 +246,10 @@ internal class EffectsDisplay(
  */
 class EffectIter(
     private var index: Int,
-    private val effects: Effects,
+    effects: Effects,
 ) : Iterator<Effects> {
+    private val effects: Effects = Effects(effects.bits)
+
     override fun hasNext(): Boolean {
         while (index < METADATA.size) {
             val effect = Effects((1 shl index).toUShort())
@@ -272,8 +276,10 @@ class EffectIter(
 
 internal class EffectIndexIter(
     private var index: Int,
-    private val effects: Effects,
+    effects: Effects,
 ) : Iterator<Int> {
+    private val effects: Effects = Effects(effects.bits)
+
     override fun hasNext(): Boolean {
         while (index < METADATA.size) {
             val effect = Effects((1 shl index).toUShort())

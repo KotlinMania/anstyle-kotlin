@@ -14,13 +14,39 @@ package ai.solace.tui.anstyle
  * println("${style.render()}$value${style.renderReset()}")
  * ```
  */
-data class Style(
+class Style(
     private val fg: Color? = null,
     private val bg: Color? = null,
     private val underline: Color? = null,
-    private var effects: Effects = Effects.PLAIN,
+    effects: Effects = Effects.PLAIN,
 ) : Displayable,
     Comparable<Style> {
+    private var effects: Effects = Effects(effects.bits)
+
+    fun copy(
+        fg: Color? = this.fg,
+        bg: Color? = this.bg,
+        underline: Color? = this.underline,
+        effects: Effects = this.effects,
+    ): Style = Style(fg = fg, bg = bg, underline = underline, effects = Effects(effects.bits))
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Style) return false
+        return fg == other.fg &&
+            bg == other.bg &&
+            underline == other.underline &&
+            effects == other.effects
+    }
+
+    override fun hashCode(): Int {
+        var result = fg?.hashCode() ?: 0
+        result = 31 * result + (bg?.hashCode() ?: 0)
+        result = 31 * result + (underline?.hashCode() ?: 0)
+        result = 31 * result + effects.hashCode()
+        return result
+    }
+
     override fun compareTo(other: Style): Int {
         // Compare fg
         val fgCmp = compareNullable(fg, other.fg)
@@ -90,7 +116,7 @@ data class Style(
      *
      * `Style` also implements [Displayable] directly, so calling this method is optional.
      */
-    fun render(): Displayable = StyleDisplay(this)
+    fun render(): Displayable = StyleDisplay(this.copy())
 
     override fun formatTo(appendable: Appendable): Appendable {
         effects.render().formatTo(appendable)
@@ -109,14 +135,14 @@ data class Style(
     fun bitor(effects: Effects): Style = copy(effects = this.effects.insert(effects))
 
     fun bitorAssign(effects: Effects): Style {
-        this.effects = this.effects.insert(effects)
+        this.effects.bitorAssign(effects)
         return this
     }
 
     fun sub(effects: Effects): Style = copy(effects = this.effects.remove(effects))
 
     fun subAssign(effects: Effects): Style {
-        this.effects = this.effects.remove(effects)
+        this.effects.subAssign(effects)
         return this
     }
 
@@ -257,7 +283,7 @@ data class Style(
     fun getUnderlineColor(): Color? = underline
 
     /** Get the effects */
-    fun getEffects(): Effects = effects
+    fun getEffects(): Effects = Effects(effects.bits)
 
     /**
      * Check if no styling is enabled
@@ -281,12 +307,12 @@ data class Style(
         /**
          * Convert effects into a style
          */
-        fun from(effects: Effects): Style = Style(effects = effects)
+        fun from(effects: Effects): Style = Style(effects = Effects(effects.bits))
     }
 }
 
 // Extension function: convert Effects to Style
-fun Effects.toStyle(): Style = Style(effects = this)
+fun Effects.toStyle(): Style = Style(effects = Effects(this.bits))
 
 // Operator extensions for Style
 infix fun Style.or(effects: Effects): Style = copy(effects = getEffects().insert(effects))
@@ -309,8 +335,10 @@ operator fun Style.minus(effects: Effects): Style = copy(effects = getEffects().
 fun Style.matches(effects: Effects): Boolean = this == effects.toStyle()
 
 internal class StyleDisplay(
-    private val style: Style,
+    style: Style,
 ) : Displayable {
+    private val style: Style = style.copy()
+
     fun fmt(appendable: Appendable): Appendable = formatTo(appendable)
 
     override fun formatTo(appendable: Appendable): Appendable = style.formatTo(appendable)
