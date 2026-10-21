@@ -23,6 +23,8 @@ object Reset : Displayable, Comparable<Reset> {
      */
     fun render(): Displayable = this
 
+    fun fmt(appendable: Appendable): Appendable = formatTo(appendable)
+
     override fun formatTo(appendable: Appendable): Appendable = appendable.append(RESET)
 
     override fun toString(): String = RESET

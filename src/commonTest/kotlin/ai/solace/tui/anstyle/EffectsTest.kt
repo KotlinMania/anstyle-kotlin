@@ -5,6 +5,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class EffectsTest {
+    private fun assertNoAlign(d: Displayable) {
+        val expected = buildString { d.formatTo(this) }
+        val actual = buildString { d.formatTo(this) }
+        assertEquals(expected, actual)
+    }
+
     @Test
     fun printSizeOf() {
         println("Effects: data class wrapping UShort")
@@ -13,12 +19,6 @@ class EffectsTest {
 
     @Test
     fun noAlign() {
-        fun assertNoAlign(d: Displayable) {
-            val expected = buildString { d.formatTo(this) }
-            val actual = buildString { d.formatTo(this) }
-            assertEquals(expected, actual)
-        }
-
         assertNoAlign(Effects.BOLD.render())
     }
 

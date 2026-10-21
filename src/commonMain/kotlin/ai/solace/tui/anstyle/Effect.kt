@@ -110,6 +110,10 @@ data class Effects(
      */
     fun insert(other: Effects): Effects = Effects(bits or other.bits)
 
+    fun bitor(other: Effects): Effects = insert(other)
+
+    fun bitorAssign(other: Effects): Effects = insert(other)
+
     /**
      * Removes the specified effects.
      *
@@ -121,6 +125,10 @@ data class Effects(
      * ```
      */
     fun remove(other: Effects): Effects = Effects(bits and other.bits.inv())
+
+    fun sub(other: Effects): Effects = remove(other)
+
+    fun subAssign(other: Effects): Effects = remove(other)
 
     /**
      * Reset all effects
@@ -158,6 +166,8 @@ data class Effects(
      * Render the ANSI code
      */
     fun render(): Displayable = EffectsDisplay(this)
+
+    fun fmt(appendable: Appendable): Appendable = EffectsDisplay(this).formatTo(appendable)
 
     internal fun writeTo(appendable: Appendable): Appendable {
         for (index in indexIter()) {
@@ -208,6 +218,8 @@ internal val METADATA: Array<Metadata> =
 internal class EffectsDisplay(
     private val effects: Effects,
 ) : Displayable {
+    fun fmt(appendable: Appendable): Appendable = formatTo(appendable)
+
     override fun formatTo(appendable: Appendable): Appendable {
         for (index in effects.indexIter()) {
             appendable.append(METADATA[index].escape)

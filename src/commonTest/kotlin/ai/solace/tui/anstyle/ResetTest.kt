@@ -5,6 +5,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ResetTest {
+    private fun assertNoAlign(d: Displayable) {
+        val expected = buildString { d.formatTo(this) }
+        val actual = buildString { d.formatTo(this) }
+        assertEquals(expected, actual)
+    }
+
     @Test
     fun printSizeOf() {
         // Reset is a singleton object (zero-sized equivalent in Kotlin)
@@ -13,12 +19,6 @@ class ResetTest {
 
     @Test
     fun noAlign() {
-        fun assertNoAlign(d: Displayable) {
-            val expected = buildString { d.formatTo(this) }
-            val actual = buildString { d.formatTo(this) }
-            assertEquals(expected, actual)
-        }
-
         assertNoAlign(Reset)
         assertNoAlign(Reset.render())
     }

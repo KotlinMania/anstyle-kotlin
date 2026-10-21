@@ -5,6 +5,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ColorTest {
+    private fun assertNoAlign(d: Displayable) {
+        val expected = buildString { d.formatTo(this) }
+        val actual = buildString { d.formatTo(this) }
+        assertEquals(expected, actual)
+    }
+
     @Test
     fun maxDisplayBuffer() {
         val c = RgbColor(255u, 255u, 255u)
@@ -25,12 +31,6 @@ class ColorTest {
 
     @Test
     fun noAlign() {
-        fun assertNoAlign(d: Displayable) {
-            val expected = buildString { d.formatTo(this) }
-            val actual = buildString { d.formatTo(this) }
-            assertEquals(expected, actual)
-        }
-
         assertNoAlign(AnsiColor.White.renderFg())
         assertNoAlign(AnsiColor.White.renderBg())
         assertNoAlign(Ansi256Color(0u).renderFg())

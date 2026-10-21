@@ -371,6 +371,8 @@ enum class AnsiColor : Comparable<AnsiColor> {
 data class Ansi256Color(
     val index: UByte,
 ) : Comparable<Ansi256Color> {
+    fun index(): UByte = index
+
     override fun compareTo(other: Ansi256Color): Int = index.compareTo(other.index)
 
     /**
@@ -490,6 +492,12 @@ data class RgbColor(
     val g: UByte,
     val b: UByte,
 ) : Comparable<RgbColor> {
+    fun r(): UByte = r
+
+    fun g(): UByte = g
+
+    fun b(): UByte = b
+
     override fun compareTo(other: RgbColor): Int {
         val cmpR = r.compareTo(other.r)
         if (cmpR != 0) return cmpR
@@ -609,6 +617,10 @@ internal class DisplayBuffer : Displayable {
 
     fun asStr(): String = buffer.decodeToString(0, len)
 
+    fun writeTo(appendable: Appendable): Appendable = appendable.append(asStr())
+
+    fun fmt(appendable: Appendable): Appendable = formatTo(appendable)
+
     override fun formatTo(appendable: Appendable): Appendable = appendable.append(asStr())
 
     override fun toString(): String = asStr()
@@ -620,6 +632,8 @@ internal class DisplayBuffer : Displayable {
 internal class NullFormatter(
     private val str: String,
 ) : Displayable {
+    fun fmt(appendable: Appendable): Appendable = formatTo(appendable)
+
     override fun formatTo(appendable: Appendable): Appendable = appendable.append(str)
 
     override fun toString(): String = str

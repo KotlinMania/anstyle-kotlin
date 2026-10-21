@@ -102,6 +102,20 @@ data class Style(
         return appendable
     }
 
+    fun fmtTo(appendable: Appendable): Appendable = formatTo(appendable)
+
+    fun fmt(appendable: Appendable): Appendable = formatTo(appendable)
+
+    fun bitor(effects: Effects): Style = copy(effects = this.effects.insert(effects))
+
+    fun bitorAssign(effects: Effects): Style = bitor(effects)
+
+    fun sub(effects: Effects): Style = copy(effects = this.effects.remove(effects))
+
+    fun subAssign(effects: Effects): Style = sub(effects)
+
+    fun eq(other: Effects): Boolean = matches(other)
+
     /**
      * Write the ANSI code
      */
@@ -291,6 +305,8 @@ fun Style.matches(effects: Effects): Boolean = this == effects.toStyle()
 internal class StyleDisplay(
     private val style: Style,
 ) : Displayable {
+    fun fmt(appendable: Appendable): Appendable = formatTo(appendable)
+
     override fun formatTo(appendable: Appendable): Appendable = style.formatTo(appendable)
 
     override fun toString(): String = buildString { formatTo(this) }
