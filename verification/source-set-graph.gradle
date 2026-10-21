@@ -1,0 +1,46 @@
+import groovy.json.JsonOutput
+
+// Inspect the realized KGP graph, including compilation source roots and declared dependency visibility.
+tasks.register('verifySourceSetGraph') {
+    group = 'verification'
+    description = 'Requires common main/test source visibility in every realized platform compilation.'
+    doLast {
+        def kotlin = project.extensions.getByName('kotlin')
+        def rows = []
+        def failures = []
+        kotlin.targets.each { target ->
+            target.compilations.each { compilation ->
+                def sets = compilation.allKotlinSourceSets.toList()
+                def names = sets.collect { it.name }.sort()
+                def test = compilation.name.toLowerCase(Locale.ROOT).contains('test')
+                def required = test ? 'commonTest' : 'commonMain'
+                if (!names.contains(required)) failures.add("${target.name}/${compilation.name} lacks ${required}")
+                def sourceSets = sets.collect { sourceSet ->
+                    def dependencies = [:]
+                    ['api', 'implementation', 'compileOnly', 'runtimeOnly'].each { scope ->
+                        def configurationName = sourceSet."${scope}ConfigurationName"
+                        def configuration = project.configurations.getByName(configurationName)
+                        dependencies[scope] = [configuration: configurationName,
+                            extendsFrom: configuration.extendsFrom.collect { it.name }.sort(),
+                            declared: configuration.allDependencies.collect { d ->
+                                [group: d.group, name: d.name, version: d.version]
+                            }]
+                    }
+                    [name: sourceSet.name, dependsOn: sourceSet.dependsOn.collect { it.name }.sort(),
+                     roots: sourceSet.kotlin.srcDirs.collect { it.absolutePath }.sort(),
+                     sourceFiles: sourceSet.kotlin.files.collect { it.absolutePath }.sort(),
+                     dependencies: dependencies]
+                }
+                rows.add([target: target.name, compilation: compilation.name,
+                    defaultSourceSet: compilation.defaultSourceSet.name, required: required,
+                    sourceSets: sourceSets])
+            }
+        }
+        def report = project.layout.buildDirectory.file('reports/verification/source-set-graph.json').get().asFile
+        report.parentFile.mkdirs()
+        report.text = JsonOutput.prettyPrint(JsonOutput.toJson([project: project.path,
+            status: failures.isEmpty() ? 'passed' : 'failed', failures: failures, compilations: rows])) + '\n'
+        if (!failures.isEmpty()) throw new GradleException(failures.join('\n'))
+        logger.lifecycle("Verified common source ancestry and dependency declarations for ${rows.size()} compilations: ${report}")
+    }
+}

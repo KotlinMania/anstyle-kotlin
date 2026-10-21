@@ -1532,3 +1532,6 @@ val fullTargetBuildTaskNames =
 tasks.named("build") {
     dependsOn(fullTargetBuildTaskNames)
 }
+
+apply(from = "verification/source-set-graph.gradle")
+tasks.named("test") { dependsOn("verifySourceSetGraph") }
