@@ -40,3 +40,5 @@ The current local parser implements a separate `Utf8Parser` returning a Kotlin `
 The existing color `noAlign` test calls the same formatting operation twice, without the upstream requested width. `printSizeOf` prints descriptions rather than actual memory sizes. Their successful execution is not proof of those Rust invariants. Swift tests now exercise actual typed colors, rendering, effects and immutable style behavior, but the strict compiler-runtime failure prevents execution in the current gate.
 
 All-target release acceptance additionally requires actual realized compilation/source ancestry, platform execution and immutable per-variant publication/consumer evidence. The earlier green workflow used warning suppression and generated API deletion, so it does not certify those conditions.
+
+The realized graph receipt follows both source-set ancestry and KGP associated compilations. Auxiliary example compilations may obtain common main code through a main-compilation association; absence from their direct source set list alone is not a hierarchy defect. The verifier records direct sets and associations explicitly.
