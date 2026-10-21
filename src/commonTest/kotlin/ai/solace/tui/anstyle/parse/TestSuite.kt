@@ -56,7 +56,7 @@ private val OSC_BYTES: UByteArray =
  */
 sealed class Sequence {
     data class Print(
-        val c: Char,
+        val c: Int,
     ) : Sequence()
 
     data class Osc(
@@ -107,7 +107,7 @@ sealed class Sequence {
 class Dispatcher : Perform {
     val dispatched: MutableList<Sequence> = mutableListOf()
 
-    override fun print(c: Char) {
+    override fun print(c: Int) {
         dispatched.add(Sequence.Print(c))
     }
 

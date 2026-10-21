@@ -113,7 +113,7 @@ class Parser<C : CharAccumulator>(
     }
 
     /**
-     * Separate method for osc_dispatch that borrows self as read-only.
+     * Dispatch the collected operating system command parameters.
      *
      * The aliasing is needed here for multiple slices into oscRaw.
      */
@@ -129,7 +129,7 @@ class Parser<C : CharAccumulator>(
     private fun <P : Perform> performAction(performer: P, action: Action, byte: UByte) {
         when (action) {
             Action.Print -> {
-                performer.print(byte.toInt().toChar())
+                performer.print(byte.toInt())
             }
 
             Action.Execute -> {
@@ -281,166 +281,4 @@ class Parser<C : CharAccumulator>(
         private const val MAX_INTERMEDIATES: Int = 2
         private const val MAX_OSC_PARAMS: Int = 16
     }
-}
-
-/**
- * Build a [Char] out of bytes.
- */
-interface CharAccumulator {
-    /**
-     * Build a [Char] out of bytes.
-     *
-     * Return `null` when more data is needed.
-     */
-    fun add(byte: UByte): Char?
-}
-
-/**
- * Only allow parsing 7-bit ASCII.
- */
-class AsciiParser : CharAccumulator {
-    override fun add(byte: UByte): Char? {
-        error("multi-byte UTF8 characters are unsupported")
-    }
-}
-
-/**
- * Simple UTF-8 parser that accumulates bytes into characters.
- */
-class Utf8Parser : CharAccumulator {
-    private var codepoint: Int = 0
-    private var remaining: Int = 0
-
-    override fun add(byte: UByte): Char? {
-        val b = byte.toInt()
-
-        if (remaining > 0) {
-            // Continuation byte
-            if ((b and 0xC0) != 0x80) {
-                // Invalid continuation byte - reset and return replacement character
-                remaining = 0
-                codepoint = 0
-                return '\uFFFD'
-            }
-            codepoint = (codepoint shl 6) or (b and 0x3F)
-            remaining -= 1
-
-            if (remaining == 0) {
-                val c =
-                    if (codepoint <= Char.MAX_VALUE.code) {
-                        codepoint.toChar()
-                    } else {
-                        // Supplementary character - return replacement for now
-                        // (full surrogate pair handling would need more work)
-                        '\uFFFD'
-                    }
-                codepoint = 0
-                return c
-            }
-            return null
-        }
-
-        // Start of new character
-        return when {
-            (b and 0x80) == 0 -> {
-                // ASCII
-                b.toChar()
-            }
-
-            (b and 0xE0) == 0xC0 -> {
-                // 2-byte sequence
-                codepoint = b and 0x1F
-                remaining = 1
-                null
-            }
-
-            (b and 0xF0) == 0xE0 -> {
-                // 3-byte sequence
-                codepoint = b and 0x0F
-                remaining = 2
-                null
-            }
-
-            (b and 0xF8) == 0xF0 -> {
-                // 4-byte sequence
-                codepoint = b and 0x07
-                remaining = 3
-                null
-            }
-
-            else -> {
-                // Invalid start byte
-                '\uFFFD'
-            }
-        }
-    }
-}
-
-/**
- * Performs actions requested by the [Parser].
- *
- * Actions in this case mean, for example, handling a CSI escape sequence
- * describing cursor movement, or simply printing characters to the screen.
- *
- * The methods on this interface correspond to actions described in
- * <http://vt100.net/emu/dec_ansi_parser>.
- */
-interface Perform {
-    /**
-     * Draw a character to the screen and update states.
-     */
-    fun print(c: Char) {}
-
-    /**
-     * Execute a C0 or C1 control function.
-     */
-    fun execute(byte: UByte) {}
-
-    /**
-     * Invoked when a final character arrives in first part of device control string.
-     *
-     * The control function should be determined from the private marker, final character,
-     * and execute with a parameter list. A handler should be selected for remaining
-     * characters in the string; the handler function should subsequently be called by
-     * [put] for every character in the control string.
-     *
-     * The [ignore] flag indicates that more than two intermediates arrived and
-     * subsequent characters were ignored.
-     */
-    fun hook(params: Params, intermediates: ByteArray, ignore: Boolean, action: UByte) {}
-
-    /**
-     * Pass bytes as part of a device control string to the handle chosen in [hook].
-     * C0 controls will also be passed to the handler.
-     */
-    fun put(byte: UByte) {}
-
-    /**
-     * Called when a device control string is terminated.
-     *
-     * The previously selected handler should be notified that the DCS has terminated.
-     */
-    fun unhook() {}
-
-    /**
-     * Dispatch an operating system command.
-     */
-    fun oscDispatch(params: Array<ByteArray>, bellTerminated: Boolean) {}
-
-    /**
-     * A final character has arrived for a CSI sequence.
-     *
-     * The [ignore] flag indicates that either more than two intermediates arrived
-     * or the number of parameters exceeded the maximum supported length,
-     * and subsequent characters were ignored.
-     */
-    fun csiDispatch(params: Params, intermediates: ByteArray, ignore: Boolean, action: UByte) {}
-
-    /**
-     * The final character of an escape sequence has arrived.
-     *
-     * The [ignore] flag indicates that more than two intermediates arrived and
-     * subsequent characters were ignored.
-     */
-    fun escDispatch(intermediates: ByteArray, ignore: Boolean, byte: UByte) {}
 }

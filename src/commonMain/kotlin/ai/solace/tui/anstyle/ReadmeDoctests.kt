@@ -1,4 +1,3 @@
-// port-lint: source lib.rs
 package ai.solace.tui.anstyle
 
 /**
