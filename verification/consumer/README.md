@@ -14,6 +14,6 @@ python3 verification/verify_consumer.py --fixture verification/consumer \
   --receipt build/reports/verification/consumer.json
 ```
 
-Set `ANDROID_HOME` and `ANDROID_SDK_ROOT` to the same existing SDK. The four named tests execute separately on Android host and JVM. They compile all six concrete companion types, test color conversions/rendering, preserve immutable style aliases, and check effect conversion. The verifier requires all eight cases without skips, the actual Android API AAR variant, independently duplicate-free compile/runtime classpaths, and exact selected Android/JVM hashes matching staging.
+Set `ANDROID_HOME` and `ANDROID_SDK_ROOT` to the same existing SDK. The five named tests execute separately on Android host and JVM. They compile all six concrete companion types, test color conversions/rendering, preserve immutable style aliases, check effect conversion, and verify full-scalar parser callbacks plus invalid UTF-8 recovery. The verifier requires all ten cases without skips, the actual Android API AAR variant, independently duplicate-free compile/runtime classpaths, and exact selected Android/JVM hashes matching staging.
 
 This proves the staged Android/JVM consumer contract. It does not publish the staged version, execute Android device/native tests, establish complete Rust workspace parity, or establish a Swift pass. The strict producer root gate remains the release gate.

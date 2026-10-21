@@ -24,7 +24,8 @@ def verify(fixture, repository, version):
             root = ET.parse(path).getroot()
             assert not root.findall('.//failure') + root.findall('.//error') + root.findall('.//skipped')
             cases.extend(c.get('classname', '') + '.' + c.get('name', '') for c in root.findall('.//testcase'))
-        assert len(cases) == 4, (task, cases)
+        expected = {'paletteConversion', 'rgbRendering', 'stylesDoNotMutateAliases', 'effectsConversion', 'parserPreservesUnicodeScalars'}
+        assert len(cases) == 5 and {name.rsplit('.', 1)[1].removesuffix('[jvm]') for name in cases} == expected, (task, cases)
         tests.append({'task': task, 'cases': cases, 'executed': len(cases), 'failures': 0, 'errors': 0, 'skipped': 0})
     selected = {}
     for platform, report, extension in [('android', 'raw-classpaths.json', 'aar'), ('jvm', 'jvm-classpaths.json', 'jar')]:
@@ -53,4 +54,4 @@ if __name__ == '__main__':
     result = verify(args.fixture, args.repository, args.version)
     args.receipt.parent.mkdir(parents=True, exist_ok=True)
     args.receipt.write_text(json.dumps(result, indent=2) + '\n')
-    print('PASS: four Android host and four JVM cases, selected payload hashes and independent classpaths')
+    print('PASS: five Android host and five JVM cases, selected payload hashes and independent classpaths')

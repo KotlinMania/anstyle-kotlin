@@ -28,3 +28,9 @@ The real implementation from the upstream module root is split into Parser, Char
 The existing test dispatcher now records scalar integers without changing its original escape/CSI/DCS/OSC inputs or assertions. The generated RUST_CALLERS report covers the styling crate; a bounded Kotlin scan of Anstyle, ANSI-to-TUI, Ratatui and env-logger found only the Anstyle test dispatcher implementing the affected parser callback. This is not a claim about every external downstream port.
 
 JVM and Android tests establish their respective JVM/Android behavior only. Native runtime, JS, Wasm and Swift results must be recorded separately. The shared published Swift runtime remains an independent release gate, owned by its existing investigator.
+
+## Function comparison limits
+
+The established workspace `ast_distance --compare-functions` tool was run against the pinned Anstyle parser module root and the locked UTF-8 state source, with complete per-function reports retained alongside the runtime receipts. The parser-file-only comparison matches its seven functions; trait/accumulator methods reside in the other focused files and must not be classified as deleted. The original optional-feature default-constructor/API coverage is not certified by this repair.
+
+The tool labels the unchanged upstream citation URL segment `dec_ansi_parser` as a snake-case comment identifier and forces a zero score for Parser.kt. That URL is a source citation, not Kotlin/Rust syntax. The citation is retained and the tool result is recorded rather than rewritten to improve the score. The private state comparison matches State.advance; byte masks/actions and receiver emission are additionally checked against the real locked Rust reference. A score is not runtime or feature-parity proof.
